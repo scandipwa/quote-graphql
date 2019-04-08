@@ -1,0 +1,45 @@
+
+# ScandiPWA - Progressive Web App for Magento
+#
+# Copyright © Scandiweb, Inc. All rights reserved.
+# See LICENSE for license details.
+#
+# @license OSL-3.0 (Open Software License ("OSL") v. 3.0)
+# @package scandipwa/checkout-graphql
+# @link https://github.com/scandipwa/checkout-graphql
+#
+# Copyright © Magento, Inc. All rights reserved.
+# See COPYING.txt for license details.
+
+type Mutation {
+    estimateShippingCosts(address: EstimateShippingCostsAddress!): [ShippingMethod] @resolver(class: "\\ScandiPWA\\CheckoutGraphQl\\Model\\Resolver\\EstimateShippingCosts")
+}
+
+input EstimateShippingCostsAddress {
+    region: String
+    region_code: String
+    country_id: String
+    postcode: String
+    city: String
+    firstname: String
+    lastname: String
+    email: String
+    telephone: String
+    street: [String],
+    customer_id: Int,
+    region_id: Int,
+    same_as_billing: Int
+}
+
+type ShippingMethod {
+    carrier_code": String
+    method_code": String
+    carrier_title": String
+    method_title": String
+    error_message": String
+    amount: Float
+    base_amount: Float
+    price_excl_tax: Float
+    price_incl_tax: Float
+    available: Boolean
+}
