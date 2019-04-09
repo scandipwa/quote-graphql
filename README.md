@@ -10,6 +10,6 @@
     - estimate-shipping-methods ✅
     - shipping-information ✅
     - payment-information ✅
-2. Implement schema (mutations) declarations
+2. Implement schema (mutations) declarations ✅
 3. Test all three endpoints. 
     - Potentially blocked by Cart quote features.

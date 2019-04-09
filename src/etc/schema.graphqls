@@ -12,11 +12,24 @@
 # See COPYING.txt for license details.
 
 type Mutation {
-    estimateShippingCosts(address: EstimateShippingCostsAddress!): [ShippingMethod] @resolver(class: "\\ScandiPWA\\CheckoutGraphQl\\Model\\Resolver\\EstimateShippingCosts")
+    estimateShippingCosts(address: EstimateShippingCostsAddress!, cartId: String): [ShippingMethod] @resolver(class: "\\ScandiPWA\\CheckoutGraphQl\\Model\\Resolver\\EstimateShippingCosts")
+    saveAddressInformation(addressInformation: SaveAddressInformation!, cartId: String): PaymentDetails @resolver(class: "\\ScandiPWA\\CheckoutGraphQl\\Model\\Resolver\\SaveAddressInformation")
+    savePaymentInformationAndPlaceOrder(paymentInformation: PaymentInformation!, cartId: String): OrderIdObject @resolver(class: "\\ScandiPWA\\CheckoutGraphQl\\Model\\Resolver\\SavePaymentInformationAndPlaceOrder")
 }
 
-input EstimateShippingCostsAddress {
+input PaymentInformation {
+    billing_address: AddressInput!
+    paymentMethod: PaymentMethodString!
+}
+
+input PaymentMethodString {
+    method: String
+}
+
+input AddressInput {
+    method: String
     region: String
+    region_id: Int
     region_code: String
     country_id: String
     postcode: String
@@ -25,18 +38,118 @@ input EstimateShippingCostsAddress {
     lastname: String
     email: String
     telephone: String
-    street: [String],
-    customer_id: Int,
-    region_id: Int,
+    street: [String]
+}
+
+input EstimateShippingCostsAddress {
+    region: String
+    region_id: Int
+    region_code: String
+    country_id: String
+    postcode: String
+    city: String
+    firstname: String
+    lastname: String
+    email: String
+    telephone: String
+    street: [String]
+    customer_id: Int
     same_as_billing: Int
 }
 
+input SaveAddressInformation {
+    shipping_address: AddressInput!
+    billing_address: AddressInput!
+    shipping_carrier_code: String
+    shipping_method_code: String
+}
+
+type OrderIdObject {
+    orderID: String
+}
+
+type PaymentDetails {
+    payment_methods: [PaymentMethod]
+}
+
+type PaymentMethod {
+    code: String
+    title: String
+}
+
+type TotalsObject {
+    grand_total: Float
+    base_grand_total: Float
+    subtotal: Float
+    base_subtotal: Float
+    discount_amount: Float
+    base_discount_amount: Float
+    subtotal_with_discount: Float
+    base_subtotal_with_discount: Float
+    shipping_amount: Float
+    base_shipping_amount: Float
+    shipping_discount_amount: Float
+    base_shipping_discount_amount: Float
+    tax_amount: Float
+    base_tax_amount: Float
+    weee_tax_applied_amount: Float
+    shipping_tax_amount: Float
+    base_shipping_tax_amount: Float
+    subtotal_incl_tax: Float
+    shipping_incl_tax: Float
+    base_shipping_incl_tax: Float
+    base_currency_code: String
+    quote_currency_code: String
+    items: [TotalsItem]
+}
+
+type TotalsItem {
+    item_id: Int
+    qty: Int
+    price: Float
+    base_price: Float
+    row_total: Float
+    base_row_total: Float
+    row_total_with_discount: Float
+    tax_amount: Float
+    base_tax_amount: Float
+    tax_percent: Float
+    discount_amount: Float
+    base_discount_amount: Float
+    discount_percent: Float
+    price_incl_tax: Float
+    base_price_incl_tax: Float
+    row_total_incl_tax: Float
+    base_row_total_incl_tax: Float
+    weee_tax_applied_amount: Float
+    weee_tax_applied: Float
+    options: String
+    name: String
+}
+
+type TotalsSegment {
+    code: String
+    title: String
+    value: Float
+    extension_attributes: ExtensionAttributes
+}
+
+type ExtensionAttributes {
+    tax_grandtotal_details: [TaxGrandTotalDetails]
+}
+
+type TaxGrandTotalDetails {
+    # rates:
+    amount: Float
+    group_id: Int
+}
+
 type ShippingMethod {
-    carrier_code": String
-    method_code": String
-    carrier_title": String
-    method_title": String
-    error_message": String
+    carrier_code: String
+    method_code: String
+    carrier_title: String
+    method_title: String
+    error_message: String
     amount: Float
     base_amount: Float
     price_excl_tax: Float
