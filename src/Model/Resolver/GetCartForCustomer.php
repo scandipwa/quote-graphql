@@ -19,6 +19,7 @@ use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
@@ -40,16 +41,24 @@ class GetCartForCustomer implements ResolverInterface {
     protected $quoteIdMaskFactory;
 
     /**
+     * @var CartRepositoryInterface
+     */
+    protected $quoteRepository;
+
+    /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
+     * @param CartRepositoryInterface $quoteRepository
      * @param QuoteManagement $quoteManagement
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
+        CartRepositoryInterface $quoteRepository,
         QuoteManagement $quoteManagement,
         QuoteIdMaskFactory $quoteIdMaskFactory
     ) {
+        $this->quoteRepository = $quoteRepository;
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteManagement = $quoteManagement;
         $this->overriderCustomerId = $overriderCustomerId;
@@ -73,10 +82,10 @@ class GetCartForCustomer implements ResolverInterface {
         array $value = null,
         array $args = null
     ) {
-        if (isset($args['cartId'])) {
+        if (isset($args['guestCartId'])) {
             // At this point we assume this is guest cart
-            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($args['cartId'], 'masked_id');
-            return $this->quoteManagement->getCartForCustomer($quoteIdMask);
+            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id');
+            $this->quoteRepository->get($quoteIdMask->getQuoteId());
         }
 
         // at this point we assume it is mine cart

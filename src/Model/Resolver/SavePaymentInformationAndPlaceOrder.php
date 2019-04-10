@@ -90,10 +90,10 @@ class SavePaymentInformationAndPlaceOrder implements ResolverInterface {
         $paymentMethod = $this->payment->setData($args['paymentMethod']);
         $billingAddress = $this->address->setData($args['billing_address']);
 
-        if (isset($args['cartId'])) {
+        if (isset($args['guestCartId'])) {
             // At this point we assume this is guest cart
             /** @var QuoteIdMask $quoteIdMask */
-            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($args['cartId'], 'masked_id');
+            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id');
             return $this->paymentInformationManagement->savePaymentInformationAndPlaceOrder(
                 $quoteIdMask->getQuoteId(),
                 $paymentMethod,

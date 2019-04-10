@@ -12,9 +12,13 @@
 # See COPYING.txt for license details.
 
 type Mutation {
-    estimateShippingCosts(address: EstimateShippingCostsAddress!, cartId: String): [ShippingMethod] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\EstimateShippingCosts")
-    saveAddressInformation(addressInformation: SaveAddressInformation!, cartId: String): PaymentDetails @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveAddressInformation")
-    savePaymentInformationAndPlaceOrder(paymentInformation: PaymentInformation!, cartId: String): OrderIdObject @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SavePaymentInformationAndPlaceOrder")
+    estimateShippingCosts(address: EstimateShippingCostsAddress!, guestCartId: String): [ShippingMethod] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\EstimateShippingCosts")
+    saveAddressInformation(addressInformation: SaveAddressInformation!, guestCartId: String): PaymentDetails @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveAddressInformation")
+    savePaymentInformationAndPlaceOrder(paymentInformation: PaymentInformation!, guestCartId: String): OrderIdObject @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SavePaymentInformationAndPlaceOrder")
+}
+
+type Query {
+    getCartForCustomer(guestCartId: String): QuoteData @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetCartForCustomer")
 }
 
 input PaymentInformation {
@@ -62,6 +66,10 @@ input SaveAddressInformation {
     billing_address: AddressInput!
     shipping_carrier_code: String
     shipping_method_code: String
+}
+
+type QuoteData {
+    # TODO: determine quote data shape
 }
 
 type OrderIdObject {
