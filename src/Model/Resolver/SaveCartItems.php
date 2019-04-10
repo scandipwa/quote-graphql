@@ -83,7 +83,7 @@ class SaveCartItems implements ResolverInterface
                 ]
             ]
         );
-        $r = $this->guestCartItemRepository->save($cartItem);
-        return $r->getData();
+        $result = $this->guestCartItemRepository->save($cartItem);
+        return $result->getData();
     }
 }
