@@ -15,6 +15,7 @@ type Mutation {
     estimateShippingCosts(address: EstimateShippingCostsAddress!, guestCartId: String): [ShippingMethod] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\EstimateShippingCosts")
     saveAddressInformation(addressInformation: SaveAddressInformation!, guestCartId: String): PaymentDetails @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveAddressInformation")
     savePaymentInformationAndPlaceOrder(paymentInformation: PaymentInformation!, guestCartId: String): OrderIdObject @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SavePaymentInformationAndPlaceOrder")
+    saveCartItems(quoteId: String!, sku: String!, qty: Int!): CartItem @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveCartItems")
 }
 
 type Query {
@@ -69,7 +70,13 @@ input SaveAddressInformation {
 }
 
 type QuoteData {
-    # TODO: determine quote data shape
+    item_id: Int
+    sku: String
+    qty: Int
+    name: String
+    price: Float
+    product_type: String
+    quote_id: String
 }
 
 type OrderIdObject {
@@ -163,4 +170,14 @@ type ShippingMethod {
     price_excl_tax: Float
     price_incl_tax: Float
     available: Boolean
+}
+
+type CartItem {
+    item_id: Int
+    sku: String
+    qty: Int
+    name: String
+    price: Float
+    product_type: String
+    quote_id: String
 }
