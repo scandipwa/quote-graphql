@@ -79,7 +79,10 @@ class GetCartForCustomer implements ResolverInterface
     {
         if (isset($args['guestCartId'])) {
             // At this point we assume this is guest cart
-            return $this->guestCartRepository->get($args['guestCartId']);
+            $cart = $this->guestCartRepository->get($args['guestCartId']);
+            $result = $cart->getData();
+            $result['id'] = $result['entity_id'];
+            return $result;
         }
         
         // at this point we assume it is mine cart

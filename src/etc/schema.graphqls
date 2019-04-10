@@ -70,13 +70,11 @@ input SaveAddressInformation {
 }
 
 type QuoteData {
-    item_id: Int
-    sku: String
-    qty: Int
-    name: String
-    price: Float
-    product_type: String
-    quote_id: String
+    id: Int
+    items_count: Int
+    customer_is_guest: Boolean
+    store_id: Int
+    customer_tax_class_id: Int
 }
 
 type OrderIdObject {
