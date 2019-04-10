@@ -1,6 +1,6 @@
-# ScandiPWA_CheckoutGraphQl
+# ScandiPWA_QuoteGraphQl
 
-**CheckoutGraphQl** provides basic types and resolvers for Checkout steps.
+**QuoteGraphQl** provides basic types and resolvers for Checkout steps.
 
 > ⚠️ This module is WIP
 
@@ -10,6 +10,8 @@
     - estimate-shipping-methods ✅
     - shipping-information ✅
     - payment-information ✅
+    - cart GET  ✅
+    - cart POST
 2. Implement schema (mutations) declarations ✅
 3. Test all three endpoints. 
     - Potentially blocked by Cart quote features.

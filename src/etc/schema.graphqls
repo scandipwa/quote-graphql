@@ -5,16 +5,16 @@
 # See LICENSE for license details.
 #
 # @license OSL-3.0 (Open Software License ("OSL") v. 3.0)
-# @package scandipwa/checkout-graphql
-# @link https://github.com/scandipwa/checkout-graphql
+# @package scandipwa/quote-graphql
+# @link https://github.com/scandipwa/quote-graphql
 #
 # Copyright © Magento, Inc. All rights reserved.
 # See COPYING.txt for license details.
 
 type Mutation {
-    estimateShippingCosts(address: EstimateShippingCostsAddress!, cartId: String): [ShippingMethod] @resolver(class: "\\ScandiPWA\\CheckoutGraphQl\\Model\\Resolver\\EstimateShippingCosts")
-    saveAddressInformation(addressInformation: SaveAddressInformation!, cartId: String): PaymentDetails @resolver(class: "\\ScandiPWA\\CheckoutGraphQl\\Model\\Resolver\\SaveAddressInformation")
-    savePaymentInformationAndPlaceOrder(paymentInformation: PaymentInformation!, cartId: String): OrderIdObject @resolver(class: "\\ScandiPWA\\CheckoutGraphQl\\Model\\Resolver\\SavePaymentInformationAndPlaceOrder")
+    estimateShippingCosts(address: EstimateShippingCostsAddress!, cartId: String): [ShippingMethod] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\EstimateShippingCosts")
+    saveAddressInformation(addressInformation: SaveAddressInformation!, cartId: String): PaymentDetails @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveAddressInformation")
+    savePaymentInformationAndPlaceOrder(paymentInformation: PaymentInformation!, cartId: String): OrderIdObject @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SavePaymentInformationAndPlaceOrder")
 }
 
 input PaymentInformation {

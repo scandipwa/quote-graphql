@@ -6,13 +6,13 @@
  * See LICENSE for license details.
  *
  * @license OSL-3.0 (Open Software License ("OSL") v. 3.0)
- * @package scandipwa/checkout-graphql
- * @link https://github.com/scandipwa/checkout-graphql
+ * @package scandipwa/quote-graphql
+ * @link https://github.com/scandipwa/quote-graphql
  */
 
 declare(strict_types=1);
 
-namespace ScandiPWA\CheckoutGraphQl\Model\Resolver;
+namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;

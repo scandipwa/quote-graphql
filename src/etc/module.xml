@@ -7,10 +7,10 @@
  * See LICENSE for license details.
  *
  * @license OSL-3.0 (Open Software License ("OSL") v. 3.0)
- * @package scandipwa/checkout-graphql
- * @link https://github.com/scandipwa/checkout-graphql
+ * @package scandipwa/quote-graphql
+ * @link https://github.com/scandipwa/quote-graphql
  */
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
-    <module name="ScandiPWA_CheckoutGraphQl"/>
+    <module name="ScandiPWA_QuoteGraphQl"/>
 </config>

@@ -25,7 +25,7 @@
         "src/registration.php"
       ],
       "psr-4": {
-        "ScandiPWA\\CheckoutGraphQl\\": "src"
+        "ScandiPWA\\QuoteGraphQl\\": "src"
       }
     }
 }
