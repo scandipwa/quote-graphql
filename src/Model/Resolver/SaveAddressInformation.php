@@ -27,6 +27,7 @@ use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\ShippingAssignmentFactory;
 use Magento\Quote\Model\ShippingFactory;
 use Magento\Checkout\Model\ShippingInformationManagement;
+use Magento\Quote\Model\Webapi\ParamOverriderCartId;
 
 /**
  * Class SaveAddressInformation
@@ -49,18 +50,26 @@ class SaveAddressInformation implements ResolverInterface {
     protected $shippingInformation;
 
     /**
+     * @var ParamOverriderCartId
+     */
+    protected $overriderCartId;
+
+    /**
      * SaveAddressInformation constructor.
      * @param ShippingInformationManagement $shippingInformationManagement
      * @param ShippingInformation $shippingInformation
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
+     * @param ParamOverriderCartId $overriderCartId
      */
     public function __construct(
         ShippingInformationManagement $shippingInformationManagement,
         ShippingInformation $shippingInformation,
-        QuoteIdMaskFactory $quoteIdMaskFactory
+        QuoteIdMaskFactory $quoteIdMaskFactory,
+        ParamOverriderCartId $overriderCartId
     ) {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->shippingInformation = $shippingInformation;
+        $this->overriderCartId = $overriderCartId;
         $this->shippingInformationManagement = $shippingInformationManagement;
     }
 
@@ -95,7 +104,7 @@ class SaveAddressInformation implements ResolverInterface {
         }
 
         return $this->shippingInformationManagement->saveAddressInformation(
-            null,
+            $this->overriderCartId->getOverriddenValue(),
             $this->shippingInformation
         );
     }

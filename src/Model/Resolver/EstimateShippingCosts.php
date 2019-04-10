@@ -22,6 +22,7 @@ use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\QuoteIdMask;
 use Magento\Quote\Model\ShippingMethodManagement;
+use Magento\Quote\Model\Webapi\ParamOverriderCartId;
 
 /**
  * Class EstimateShippingCosts
@@ -39,16 +40,24 @@ class EstimateShippingCosts implements ResolverInterface {
     protected $shippingMethodManagement;
 
     /**
+     * @var ParamOverriderCartId
+     */
+    protected $overriderCartId;
+
+    /**
      * EstimateShippingCosts constructor.
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
      * @param ShippingMethodManagement $shippingMethodManagement
+     * @param ParamOverriderCartId $overriderCartId
      */
     public function __construct(
         QuoteIdMaskFactory $quoteIdMaskFactory,
-        ShippingMethodManagement $shippingMethodManagement
+        ShippingMethodManagement $shippingMethodManagement,
+        ParamOverriderCartId $overriderCartId
     ) {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->shippingMethodManagement = $shippingMethodManagement;
+        $this->overriderCartId = $overriderCartId;
     }
 
     /**
@@ -82,8 +91,8 @@ class EstimateShippingCosts implements ResolverInterface {
         }
 
         // at this point we assume it is mine cart
-        return $this->estimateByAddress(
-            null,
+        return $this->shippingMethodManagement->estimateByAddress(
+            $this->overriderCartId->getOverriddenValue(),
             $address
         );
     }

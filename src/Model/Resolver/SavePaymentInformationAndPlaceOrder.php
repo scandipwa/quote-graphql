@@ -24,6 +24,7 @@ use Magento\Quote\Model\QuoteIdMask;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Api\Data\PaymentInterface;
 use Magento\Quote\Api\Data\AddressInterface;
+use Magento\Quote\Model\Webapi\ParamOverriderCartId;
 
 class SavePaymentInformationAndPlaceOrder implements ResolverInterface {
     /**
@@ -47,20 +48,28 @@ class SavePaymentInformationAndPlaceOrder implements ResolverInterface {
     protected $address;
 
     /**
+     * @var ParamOverriderCartId
+     */
+    protected $overriderCartId;
+
+    /**
      * SavePaymentInformationAndPlaceOrder constructor.
      * @param PaymentInformationManagement $paymentInformationManagement
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
      * @param PaymentInterface $payment
      * @param AddressInterface $address
+     * @param ParamOverriderCartId $overriderCartId
      */
     public function __construct(
         PaymentInformationManagement $paymentInformationManagement,
         QuoteIdMaskFactory $quoteIdMaskFactory,
         PaymentInterface $payment,
-        AddressInterface $address
+        AddressInterface $address,
+        ParamOverriderCartId $overriderCartId
     ) {
         $this->paymentInformationManagement = $paymentInformationManagement;
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
+        $this->overriderCartId = $overriderCartId;
         $this->payment = $payment;
         $this->address = $address;
     }
@@ -93,7 +102,7 @@ class SavePaymentInformationAndPlaceOrder implements ResolverInterface {
         }
 
         return $this->paymentInformationManagement->savePaymentInformationAndPlaceOrder(
-            null,
+            $this->overriderCartId->getOverriddenValue(),
             $paymentMethod,
             $billingAddress
         );

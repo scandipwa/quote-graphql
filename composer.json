@@ -2,6 +2,7 @@
     "name": "scandipwa/checkout-graphql",
     "description": "N/A",
     "type": "magento2-module",
+    "version": "0.0.1",
     "require": {
       "php": "~7.1.3||~7.2.0",
       "magento/module-customer": "*",
