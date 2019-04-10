@@ -25,8 +25,11 @@ use Magento\Quote\Api\Data\CartItemInterface;
 use \Magento\Quote\Api\Data\CartItemInterfaceFactory;
 use Magento\Quote\Api\GuestCartItemRepositoryInterface;
 
-
-class SaveCartItems implements ResolverInterface
+/**
+ * Class SaveCartItem
+ * @package ScandiPWA\QuoteGraphQl\Model\Resolver
+ */
+class SaveCartItem implements ResolverInterface
 {
     /**
      * @var CartItemRepositoryInterface
