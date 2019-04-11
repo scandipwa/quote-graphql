@@ -15,8 +15,8 @@ type Mutation {
     estimateShippingCosts(address: EstimateShippingCostsAddress!, guestCartId: String): [ShippingMethod] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\EstimateShippingCosts")
     saveAddressInformation(addressInformation: SaveAddressInformation!, guestCartId: String): PaymentDetails @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveAddressInformation")
     savePaymentInformationAndPlaceOrder(paymentInformation: PaymentInformation!, guestCartId: String): OrderIdObject @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SavePaymentInformationAndPlaceOrder")
-    saveCartItem(quoteId: String!, sku: String!, qty: Int!, item_id: Int): CartItem @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveCartItem")
-    removeCartItem(quoteId: String!, item_id: Int!): Boolean @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCartItem")
+    saveCartItem(quoteId: String, sku: String!, qty: Int!, item_id: Int): CartItem @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveCartItem")
+    removeCartItem(quoteId: String, item_id: Int!): Boolean @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCartItem")
 }
 
 type Query {
