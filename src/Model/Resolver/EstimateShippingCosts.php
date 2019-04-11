@@ -14,11 +14,14 @@ declare(strict_types=1);
 
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
+use Magento\Customer\Api\Data\AddressInterfaceFactory;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Quote\Api\Data\EstimateAddressInterface;
+use Magento\Quote\Api\Data\EstimateAddressInterfaceFactory;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\QuoteIdMask;
 use Magento\Quote\Model\ShippingMethodManagement;
@@ -45,16 +48,24 @@ class EstimateShippingCosts implements ResolverInterface {
     protected $overriderCartId;
 
     /**
+     * @var AddressInterfaceFactory
+     */
+    protected $addressInterfaceFactory;
+
+    /**
      * EstimateShippingCosts constructor.
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
      * @param ShippingMethodManagement $shippingMethodManagement
      * @param ParamOverriderCartId $overriderCartId
+     * @param EstimateAddressInterfaceFactory $addressInterfaceFactory
      */
     public function __construct(
         QuoteIdMaskFactory $quoteIdMaskFactory,
         ShippingMethodManagement $shippingMethodManagement,
-        ParamOverriderCartId $overriderCartId
+        ParamOverriderCartId $overriderCartId,
+        EstimateAddressInterfaceFactory $addressInterfaceFactory
     ) {
+        $this->addressInterfaceFactory = $addressInterfaceFactory;
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->shippingMethodManagement = $shippingMethodManagement;
         $this->overriderCartId = $overriderCartId;
@@ -78,7 +89,8 @@ class EstimateShippingCosts implements ResolverInterface {
         array $value = null,
         array $args = null
     ) {
-        $address = $args['address'];
+        /** @var EstimateAddressInterface $address */
+        $address = $this->addressInterfaceFactory->create([ 'data' => $args['address'] ]);
 
         if (isset($args['guestCartId'])) {
             // At this point we assume this is guest cart
