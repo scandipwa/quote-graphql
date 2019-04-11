@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 
+use Magento\Quote\Model\Quote\ProductOptionFactory;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
@@ -24,6 +25,7 @@ use Magento\Quote\Api\CartItemRepositoryInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Api\Data\CartItemInterface;
 use \Magento\Quote\Api\Data\CartItemInterfaceFactory;
+use Magento\Quote\Api\Data\ProductOptionExtensionFactory;
 use Magento\Quote\Api\GuestCartItemRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 
@@ -59,6 +61,11 @@ class SaveCartItem implements ResolverInterface
     private $quoteRepository;
     
     /**
+     * @var ProductOptionFactory
+     */
+    private $productOptionFactory;
+    
+    /**
      * SaveCartItem constructor.
      * @param CartItemRepositoryInterface      $cartItemRepository
      * @param CartItemInterfaceFactory         $cartItemFactory
@@ -71,7 +78,9 @@ class SaveCartItem implements ResolverInterface
         CartItemInterfaceFactory $cartItemFactory,
         GuestCartItemRepositoryInterface $guestCartItemRepository,
         QuoteIdMaskFactory $quoteIdMaskFactory,
-        CartRepositoryInterface $quoteRepository
+        CartRepositoryInterface $quoteRepository,
+        ProductOptionFactory $productOptionFactory,
+        ProductOptionExtensionFactory $productOptionExtensionFactory
     )
     {
         $this->cartItemRepository = $cartItemRepository;
@@ -79,6 +88,8 @@ class SaveCartItem implements ResolverInterface
         $this->guestCartItemRepository = $guestCartItemRepository;
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteRepository = $quoteRepository;
+        $this->productOptionFactory = $productOptionFactory;
+        $this->productOptionExtensionFactory = $productOptionExtensionFactory;
     }
     
     /**
@@ -101,15 +112,33 @@ class SaveCartItem implements ResolverInterface
      */
     public function createCartItem(array $args): CartItemInterface
     {
-        return $this->cartItemFactory->create(
+        $t =  $this->cartItemFactory->create(
             [
                 'data' => [
                     CartItemInterface::KEY_SKU => $args['sku'],
                     CartItemInterface::KEY_QTY => $args['qty'],
-                    CartItemInterface::KEY_QUOTE_ID => $args['quoteId']
+                    CartItemInterface::KEY_QUOTE_ID => $args['quote_id']
                 ]
             ]
         );
+        $ext = $this->productOptionExtensionFactory->create(['data'
+            => $args[CartItemInterface::KEY_PRODUCT_OPTION]['extension_attributes']]);
+        $options = $this->productOptionFactory->create(['data' => ['extension_attributes' => $ext]]);
+        $t->setProductOption($options);
+        
+        
+        
+        
+        
+//        $options = $args[CartItemInterface::KEY_PRODUCT_OPTION];
+//        $attrs = $this->extensionAttributesFactory
+//            ->create(
+//                Item::class,
+//                ['data' => $options['extension_attributes']]
+//            );
+//        $t->setExtensionAttributes($attrs);
+        
+        return $t;
     }
     
     /**
@@ -131,17 +160,18 @@ class SaveCartItem implements ResolverInterface
         array $args = null
     )
     {
-        ['qty' => $qty] = $args;
+        $requestCartItem = $args['cartItem'];
+        ['qty' => $qty] = $requestCartItem;
         
-        if (array_key_exists('item_id', $args)) {
-            $item_id = $args['item_id'];
-            $cartItem = $this->getCartItem($item_id, $args['quoteId']);
+        if (array_key_exists('item_id', $requestCartItem)) {
+            $item_id = $requestCartItem['item_id'];
+            $requestCartItem = $this->getCartItem($item_id, $requestCartItem['quoteId']);
             if ($qty > 0) {
-                $cartItem->setQty($qty);
+                $requestCartItem->setQty($qty);
             }
-            $result = $this->cartItemRepository->save($cartItem);
+            $result = $this->cartItemRepository->save($requestCartItem);
         } else {
-            $cartItem = $this->createCartItem($args);
+            $cartItem = $this->createCartItem($requestCartItem);
             $result = $this->guestCartItemRepository->save($cartItem);
         }
         
