@@ -15,12 +15,14 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 
+use Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\GuestCartItemRepositoryInterface;
+use Magento\Catalog\Model\ProductFactory;
 
 /**
  * Class GetCartItems
@@ -34,14 +36,30 @@ class GetCartItems implements ResolverInterface
     private $guestCartItemRepository;
     
     /**
+     * @var Configurable
+     */
+    private $configurable;
+    
+    /**
+     * @var ProductFactory
+     */
+    private $productFactory;
+    
+    /**
      * GetCartItems constructor.
      * @param GuestCartItemRepositoryInterface $guestCartItemRepository
+     * @param Configurable                     $configurable
+     * @param ProductFactory                   $productFactory
      */
     public function __construct(
-        GuestCartItemRepositoryInterface $guestCartItemRepository
+        GuestCartItemRepositoryInterface $guestCartItemRepository,
+        Configurable $configurable,
+        ProductFactory $productFactory
     )
     {
         $this->guestCartItemRepository = $guestCartItemRepository;
+        $this->configurable = $configurable;
+        $this->productFactory = $productFactory;
     }
     
     
@@ -65,7 +83,14 @@ class GetCartItems implements ResolverInterface
         }
         $result = [];
         foreach ($cartItems as $cartItem) {
-            $result[] = $cartItem->getData();
+            $currentProduct = $cartItem->getProduct();
+            $parentIds = $this->configurable->getParentIdsByChild($currentProduct->getId());
+            if (count($parentIds)) {
+                $parentProduct = $this->productFactory->create()->load(reset($parentIds));
+                $result[] = array_merge($cartItem->getData(), ['product' => $parentProduct->getData()]);
+            } else {
+                $result[] = array_merge($cartItem->getData(), ['product' => $currentProduct->getData()]);
+            }
         }
         
         return $result;

@@ -182,4 +182,5 @@ type CartItem {
     price: Float
     product_type: String
     quote_id: String
+    product: ProductInterface
 }
