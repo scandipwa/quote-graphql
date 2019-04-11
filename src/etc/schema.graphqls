@@ -72,12 +72,13 @@ input SaveAddressInformation {
     shipping_method_code: String
 }
 
-type QuoteData {
+type QuoteData implements TotalsObject {
     id: Int
     items_count: Int
     customer_is_guest: Boolean
     store_id: Int
     customer_tax_class_id: Int
+    items_qty: Float
 }
 
 type OrderIdObject {
@@ -93,7 +94,7 @@ type PaymentMethod {
     title: String
 }
 
-type TotalsObject {
+interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\TotalsObject") @doc(description:"ProductLinks contains information about linked products, including the link type and product type of each item."){
     grand_total: Float
     base_grand_total: Float
     subtotal: Float
