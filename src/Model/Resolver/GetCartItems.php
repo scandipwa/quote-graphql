@@ -20,6 +20,7 @@ use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Quote\Api\GuestCartItemRepositoryInterface;
 
 /**
  * Class GetCartItems
@@ -27,9 +28,20 @@ use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
  */
 class GetCartItems implements ResolverInterface
 {
+    /**
+     * @var GuestCartItemRepositoryInterface
+     */
+    private $guestCartItemRepository;
     
-    public function __construct()
+    /**
+     * GetCartItems constructor.
+     * @param GuestCartItemRepositoryInterface $guestCartItemRepository
+     */
+    public function __construct(
+        GuestCartItemRepositoryInterface $guestCartItemRepository
+    )
     {
+        $this->guestCartItemRepository = $guestCartItemRepository;
     }
     
     
@@ -46,7 +58,16 @@ class GetCartItems implements ResolverInterface
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        $t = 't';
-        return [['sku' => 'fakesku']];
+        ['quoteId' => $quoteId] = $args;
+        $cartItems = $this->guestCartItemRepository->getList($quoteId);
+        if (count($cartItems) < 1) {
+            return [];
+        }
+        $result = [];
+        foreach ($cartItems as $cartItem) {
+            $result[] = $cartItem->getData();
+        }
+        
+        return $result;
     }
 }
