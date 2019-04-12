@@ -14,17 +14,17 @@ declare(strict_types=1);
 
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
+use Magento\Checkout\Api\GuestPaymentInformationManagementInterface;
+use Magento\Checkout\Api\PaymentInformationManagementInterface;
 use Magento\Checkout\Model\PaymentInformationManagement;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
-use Magento\Quote\Model\QuoteIdMask;
-use Magento\Quote\Model\QuoteIdMaskFactory;
-use Magento\Quote\Api\Data\PaymentInterface;
-use Magento\Quote\Api\Data\AddressInterface;
+use Magento\Quote\Api\Data\AddressInterfaceFactory;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
+use Magento\Quote\Api\Data\PaymentInterfaceFactory;
 
 class SavePaymentInformationAndPlaceOrder implements ResolverInterface {
     /**
@@ -33,45 +33,45 @@ class SavePaymentInformationAndPlaceOrder implements ResolverInterface {
     protected $paymentInformationManagement;
 
     /**
-     * @var QuoteIdMaskFactory
-     */
-    protected $quoteIdMaskFactory;
-
-    /**
-     * @var PaymentInterface
-     */
-    protected $payment;
-
-    /**
-     * @var AddressInterface
-     */
-    protected $address;
-
-    /**
      * @var ParamOverriderCartId
      */
     protected $overriderCartId;
 
     /**
+     * @var GuestPaymentInformationManagementInterface
+     */
+    protected $guestPaymentInformationManagement;
+
+    /**
+     * @var PaymentInterfaceFactory
+     */
+    protected $paymentInterfaceFactory;
+
+    /**
+     * @var AddressInterfaceFactory
+     */
+    protected $addressInterfaceFactory;
+
+    /**
      * SavePaymentInformationAndPlaceOrder constructor.
-     * @param PaymentInformationManagement $paymentInformationManagement
-     * @param QuoteIdMaskFactory $quoteIdMaskFactory
-     * @param PaymentInterface $payment
-     * @param AddressInterface $address
+     * @param GuestPaymentInformationManagementInterface $guestPaymentInformationManagement
+     * @param PaymentInformationManagementInterface $paymentInformationManagement
      * @param ParamOverriderCartId $overriderCartId
+     * @param PaymentInterfaceFactory $paymentInterfaceFactory
+     * @param AddressInterfaceFactory $addressInterfaceFactory
      */
     public function __construct(
-        PaymentInformationManagement $paymentInformationManagement,
-        QuoteIdMaskFactory $quoteIdMaskFactory,
-        PaymentInterface $payment,
-        AddressInterface $address,
-        ParamOverriderCartId $overriderCartId
+        GuestPaymentInformationManagementInterface $guestPaymentInformationManagement,
+        PaymentInformationManagementInterface $paymentInformationManagement,
+        ParamOverriderCartId $overriderCartId,
+        PaymentInterfaceFactory $paymentInterfaceFactory,
+        AddressInterfaceFactory $addressInterfaceFactory
     ) {
+        $this->paymentInterfaceFactory = $paymentInterfaceFactory;
+        $this->guestPaymentInformationManagement = $guestPaymentInformationManagement;
         $this->paymentInformationManagement = $paymentInformationManagement;
-        $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->overriderCartId = $overriderCartId;
-        $this->payment = $payment;
-        $this->address = $address;
+        $this->addressInterfaceFactory = $addressInterfaceFactory;
     }
 
     /**
@@ -87,24 +87,23 @@ class SavePaymentInformationAndPlaceOrder implements ResolverInterface {
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        $paymentMethod = $this->payment->setData($args['paymentMethod']);
-        $billingAddress = $this->address->setData($args['billing_address']);
+        [ 'paymentMethod' => $paymentMethod, 'billing_address' => $billingAddress ] = $args['paymentInformation'];
+        $paymentMethod = $this->paymentInterfaceFactory->create([ 'data' => $paymentMethod ]);
+        $billingAddress =$this->addressInterfaceFactory->create([ 'data' => $billingAddress ]);
 
-        if (isset($args['guestCartId'])) {
-            // At this point we assume this is guest cart
-            /** @var QuoteIdMask $quoteIdMask */
-            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id');
-            return $this->paymentInformationManagement->savePaymentInformationAndPlaceOrder(
-                $quoteIdMask->getQuoteId(),
+        $orderId = isset($args['guestCartId'])
+            ? $this->guestPaymentInformationManagement->savePaymentInformationAndPlaceOrder(
+                $args['guestCartId'],
+                $billingAddress->getEmail(),
+                $paymentMethod,
+                $billingAddress
+            )
+            : $this->paymentInformationManagement->savePaymentInformationAndPlaceOrder(
+                $this->overriderCartId->getOverriddenValue(),
                 $paymentMethod,
                 $billingAddress
             );
-        }
 
-        return $this->paymentInformationManagement->savePaymentInformationAndPlaceOrder(
-            $this->overriderCartId->getOverriddenValue(),
-            $paymentMethod,
-            $billingAddress
-        );
+        return [ 'orderID' => $orderId ];
     }
 }
