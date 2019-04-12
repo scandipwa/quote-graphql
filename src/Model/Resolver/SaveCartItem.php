@@ -157,10 +157,12 @@ class SaveCartItem implements ResolverInterface
                 'data' => [
                     CartItemInterface::KEY_SKU => $args['sku'],
                     CartItemInterface::KEY_QTY => $args['qty'],
-                    CartItemInterface::KEY_QUOTE_ID => $args['quote_id']
+                    CartItemInterface::KEY_QUOTE_ID => $args['quote_id'],
+                    CartItemInterface::KEY_PRODUCT_TYPE => $args['product_type']
                 ]
             ]
         );
+
         if (array_key_exists(CartItemInterface::KEY_PRODUCT_OPTION, $args)) {
             $cartItem = $this->createConfigurable($cartItem, $args[CartItemInterface::KEY_PRODUCT_OPTION]);
         }
@@ -201,6 +203,7 @@ class SaveCartItem implements ResolverInterface
             $cartItem = $this->createCartItem($requestCartItem);
             $result = $this->guestCartItemRepository->save($cartItem);
         }
+
         return array_merge($result->getData(), ['product' => $result->getProduct()->getData()]);
     }
 }

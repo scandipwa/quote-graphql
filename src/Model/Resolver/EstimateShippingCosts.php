@@ -22,6 +22,7 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\Data\EstimateAddressInterface;
 use Magento\Quote\Api\Data\EstimateAddressInterfaceFactory;
+use Magento\Quote\Api\Data\ShippingMethodInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\QuoteIdMask;
 use Magento\Quote\Model\ShippingMethodManagement;
@@ -96,10 +97,26 @@ class EstimateShippingCosts implements ResolverInterface {
             // At this point we assume this is guest cart
             /** @var QuoteIdMask $quoteIdMask */
             $quoteIdMask = $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id');
-            return $this->shippingMethodManagement->estimateByAddress(
+            $shippingMethods = $this->shippingMethodManagement->estimateByAddress(
                 $quoteIdMask->getQuoteId(),
                 $address
             );
+
+            return array_map(function($shippingMethod) {
+                /** @var ShippingMethodInterface $shippingMethod */
+                return [
+                    'carrier_code' => $shippingMethod->getCarrierCode(),
+                    'method_code' => $shippingMethod->getMethodCode(),
+                    'carrier_title' => $shippingMethod->getCarrierTitle(),
+                    'method_title' => $shippingMethod->getMethodTitle(),
+                    'error_message' => $shippingMethod->getErrorMessage(),
+                    'amount' => $shippingMethod->getAmount(),
+                    'base_amount' => $shippingMethod->getBaseAmount(),
+                    'price_excl_tax' => $shippingMethod->getPriceExclTax(),
+                    'price_incl_tax' => $shippingMethod->getPriceInclTax(),
+                    'available' => $shippingMethod->getAvailable()
+                ];
+            }, $shippingMethods);
         }
 
         // at this point we assume it is mine cart
