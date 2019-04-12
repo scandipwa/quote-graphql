@@ -12,10 +12,10 @@
 
 declare(strict_types=1);
 
+
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 
-use Magento\ConfigurableProduct\Model\Quote\Item\ConfigurableItemOptionValue;
 use Magento\ConfigurableProduct\Model\Quote\Item\ConfigurableItemOptionValueFactory;
 use Magento\Quote\Model\Quote\ProductOptionFactory;
 use Magento\Framework\GraphQl\Config\Element\Field;
@@ -68,12 +68,25 @@ class SaveCartItem implements ResolverInterface
     private $productOptionFactory;
     
     /**
+     * @var ProductOptionExtensionFactory
+     */
+    private $productOptionExtensionFactory;
+    
+    /**
+     * @var ConfigurableItemOptionValueFactory
+     */
+    private $configurableItemOptionValueFactory;
+    
+    /**
      * SaveCartItem constructor.
-     * @param CartItemRepositoryInterface      $cartItemRepository
-     * @param CartItemInterfaceFactory         $cartItemFactory
-     * @param GuestCartItemRepositoryInterface $guestCartItemRepository
-     * @param QuoteIdMaskFactory               $quoteIdMaskFactory
-     * @param CartRepositoryInterface          $quoteRepository
+     * @param CartItemRepositoryInterface        $cartItemRepository
+     * @param CartItemInterfaceFactory           $cartItemFactory
+     * @param GuestCartItemRepositoryInterface   $guestCartItemRepository
+     * @param QuoteIdMaskFactory                 $quoteIdMaskFactory
+     * @param CartRepositoryInterface            $quoteRepository
+     * @param ProductOptionFactory               $productOptionFactory
+     * @param ProductOptionExtensionFactory      $productOptionExtensionFactory
+     * @param ConfigurableItemOptionValueFactory $configurableItemOptionValueFactory
      */
     public function __construct(
         CartItemRepositoryInterface $cartItemRepository,
@@ -84,7 +97,7 @@ class SaveCartItem implements ResolverInterface
         ProductOptionFactory $productOptionFactory,
         ProductOptionExtensionFactory $productOptionExtensionFactory,
         ConfigurableItemOptionValueFactory $configurableItemOptionValueFactory
-
+    
     )
     {
         $this->cartItemRepository = $cartItemRepository;
@@ -112,12 +125,34 @@ class SaveCartItem implements ResolverInterface
     }
     
     /**
+     * @param CartItemInterface $cartItem
+     * @param array             $productOptions
+     */
+    private function createConfigurable(CartItemInterface $cartItem, array $productOptions): CartItemInterface
+    {
+        $extensionAttributes = $productOptions['extension_attributes'];
+        
+        $attributes = [];
+        foreach ($extensionAttributes['configurable_item_options'] as $attribute) {
+            $attributes[] = $this->configurableItemOptionValueFactory->create(['data' => $attribute]);
+        }
+        
+        $ext = $this->productOptionExtensionFactory->create(
+            ['data' => ['configurable_item_options' => $attributes]]);
+        
+        
+        $options = $this->productOptionFactory->create(['data' => ['extension_attributes' => $ext]]);
+        
+        return $cartItem->setProductOption($options);
+    }
+    
+    /**
      * @param array $args
      * @return CartItemInterface
      */
     public function createCartItem(array $args): CartItemInterface
     {
-        $t =  $this->cartItemFactory->create(
+        $cartItem = $this->cartItemFactory->create(
             [
                 'data' => [
                     CartItemInterface::KEY_SKU => $args['sku'],
@@ -126,33 +161,11 @@ class SaveCartItem implements ResolverInterface
                 ]
             ]
         );
-        $extensionAttrs = $args[CartItemInterface::KEY_PRODUCT_OPTION]['extension_attributes'];
-        
-        $attributes = [];
-        foreach ($extensionAttrs['configurable_item_options'] as $attribute) {
-            $attributes[] = $this->configurableItemOptionValueFactory->create(['data' => $attribute]);
+        if (array_key_exists(CartItemInterface::KEY_PRODUCT_OPTION, $args)) {
+            $cartItem = $this->createConfigurable($cartItem, $args[CartItemInterface::KEY_PRODUCT_OPTION]);
         }
-    
-        $ext = $this->productOptionExtensionFactory->create(
-            ['data' => ['configurable_item_options' => $attributes]]);
-    
-    
-        $options = $this->productOptionFactory->create(['data' => ['extension_attributes' => $ext]]);
-        $t->setProductOption($options);
         
-        
-        
-        
-        
-//        $options = $args[CartItemInterface::KEY_PRODUCT_OPTION];
-//        $attrs = $this->extensionAttributesFactory
-//            ->create(
-//                Item::class,
-//                ['data' => $options['extension_attributes']]
-//            );
-//        $t->setExtensionAttributes($attrs);
-        
-        return $t;
+        return $cartItem;
     }
     
     /**
@@ -188,7 +201,6 @@ class SaveCartItem implements ResolverInterface
             $cartItem = $this->createCartItem($requestCartItem);
             $result = $this->guestCartItemRepository->save($cartItem);
         }
-        
-        return $result->getData();
+        return array_merge($result->getData(), ['product' => $result->getProduct()->getData()]);
     }
 }
