@@ -20,9 +20,7 @@ type Mutation {
 }
 
 type Query {
-    getCartForCustomer(guestCartId: String): QuoteData @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetCartForCustomer")
     getCartItems(quoteId: String!): [CartItem] @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetCartItems")
-
 }
 
 input CartItemInput {
@@ -42,8 +40,6 @@ input ProductOptionInput {
 input ExtensionsAttributeInput {
     configurable_item_options: [ConfigurableItemOptionsInput]
 }
-
-
 
 input ConfigurableItemOptionsInput {
     option_id: String
@@ -97,7 +93,7 @@ input SaveAddressInformation {
     shipping_method_code: String
 }
 
-type QuoteData implements TotalsObject {
+type QuoteData {
     id: Int
     items_count: Int
     customer_is_guest: Boolean
@@ -112,6 +108,7 @@ type OrderIdObject {
 
 type PaymentDetails {
     payment_methods: [PaymentMethod]
+    totals: TotalsObject
 }
 
 type PaymentMethod {
@@ -119,7 +116,7 @@ type PaymentMethod {
     title: String
 }
 
-interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\TotalsObject") @doc(description:"ProductLinks contains information about linked products, including the link type and product type of each item."){
+type TotalsObject {
     grand_total: Float
     base_grand_total: Float
     subtotal: Float

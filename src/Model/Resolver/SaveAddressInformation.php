@@ -14,20 +14,20 @@ declare(strict_types=1);
 
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
-use Magento\Checkout\Model\ShippingInformation;
+use Magento\Checkout\Api\Data\ShippingInformationInterface;
+use Magento\Checkout\Api\Data\ShippingInformationInterfaceFactory;
+use Magento\Checkout\Api\GuestShippingInformationManagementInterface;
+use Magento\Checkout\Api\ShippingInformationManagementInterface;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
-use Magento\Quote\Model\QuoteIdMask;
-use Magento\Checkout\Model\PaymentDetailsFactory;
-use Magento\Quote\Api\Data\CartExtensionFactory;
-use Magento\Quote\Model\QuoteIdMaskFactory;
-use Magento\Quote\Model\ShippingAssignmentFactory;
-use Magento\Quote\Model\ShippingFactory;
 use Magento\Checkout\Model\ShippingInformationManagement;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
+use Magento\Quote\Api\Data\AddressInterfaceFactory;
+use \Magento\Quote\Api\Data\PaymentMethodInterface;
+use \Magento\Quote\Api\Data\TotalsItemInterface;
 
 /**
  * Class SaveAddressInformation
@@ -40,12 +40,7 @@ class SaveAddressInformation implements ResolverInterface {
     protected $shippingInformationManagement;
 
     /**
-     * @var QuoteIdMaskFactory
-     */
-    protected $quoteIdMaskFactory;
-
-    /**
-     * @var ShippingInformation
+     * @var ShippingInformationInterfaceFactory
      */
     protected $shippingInformation;
 
@@ -55,22 +50,27 @@ class SaveAddressInformation implements ResolverInterface {
     protected $overriderCartId;
 
     /**
-     * SaveAddressInformation constructor.
-     * @param ShippingInformationManagement $shippingInformationManagement
-     * @param ShippingInformation $shippingInformation
-     * @param QuoteIdMaskFactory $quoteIdMaskFactory
-     * @param ParamOverriderCartId $overriderCartId
+     * @var GuestShippingInformationManagementInterface
      */
+    protected $guestShippingInformationManagement;
+
+    /**
+     * @var AddressInterfaceFactory
+     */
+    protected $addressInterfaceFactory;
+
     public function __construct(
-        ShippingInformationManagement $shippingInformationManagement,
-        ShippingInformation $shippingInformation,
-        QuoteIdMaskFactory $quoteIdMaskFactory,
-        ParamOverriderCartId $overriderCartId
+        ShippingInformationManagementInterface $shippingInformationManagement,
+        GuestShippingInformationManagementInterface $guestShippingInformationManagement,
+        ShippingInformationInterfaceFactory $shippingInformation,
+        ParamOverriderCartId $overriderCartId,
+        AddressInterfaceFactory $addressInterfaceFactory
     ) {
-        $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->shippingInformation = $shippingInformation;
         $this->overriderCartId = $overriderCartId;
         $this->shippingInformationManagement = $shippingInformationManagement;
+        $this->guestShippingInformationManagement = $guestShippingInformationManagement;
+        $this->addressInterfaceFactory = $addressInterfaceFactory;
     }
 
     /**
@@ -91,21 +91,82 @@ class SaveAddressInformation implements ResolverInterface {
         array $value = null,
         array $args = null
     ) {
-        $this->shippingInformation->setData($args['addressInformation']);
+        $requestAddressInformation = $args['addressInformation'];
+        [
+            ShippingInformationInterface::SHIPPING_ADDRESS => $shippingAddress,
+            ShippingInformationInterface::BILLING_ADDRESS => $billingAddress,
+            ShippingInformationInterface::SHIPPING_CARRIER_CODE => $shippingCarrierCode,
+            ShippingInformationInterface::SHIPPING_METHOD_CODE => $shippingMethodCode
+        ] = $requestAddressInformation;
+
+        $addressInformation = $this->shippingInformation->create([
+            'data' => [
+                'shipping_address' => $this->addressInterfaceFactory->create([ 'data' => $shippingAddress ]),
+                'billing_address' => $this->addressInterfaceFactory->create([ 'data' => $billingAddress ]),
+                'shipping_carrier_code' => $shippingCarrierCode,
+                'shipping_method_code' => $shippingMethodCode
+            ]
+        ]);
 
         if (isset($args['guestCartId'])) {
             // At this point we assume this is guest cart
-            /** @var QuoteIdMask $quoteIdMask */
-            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id');
-            return $this->shippingInformationManagement->saveAddressInformation(
-                $quoteIdMask->getQuoteId(),
-                $this->shippingInformation
-            );
+            return $this->requestPaymentMethods($addressInformation, $args['guestCartId']);
         }
 
-        return $this->shippingInformationManagement->saveAddressInformation(
-            $this->overriderCartId->getOverriddenValue(),
-            $this->shippingInformation
-        );
+        return $this->requestPaymentMethods($addressInformation);
+    }
+
+    protected function requestPaymentMethods($addressInformation, $guestCartId = null): array
+    {
+        $rawPaymentInformation = $guestCartId
+            ? $this->guestShippingInformationManagement->saveAddressInformation($guestCartId, $addressInformation)
+            : $this->shippingInformationManagement->saveAddressInformation(
+                $this->overriderCartId->getOverriddenValue(),
+                $addressInformation
+            );
+
+        $rawTotals = $rawPaymentInformation->getTotals();
+
+        return [
+            'payment_methods' => array_map(
+                function ($payment) {
+                    /** @var PaymentMethodInterface $payment */
+                    return [
+                        'code' => $payment->getCode(),
+                        'title' => $payment->getTitle(),
+                    ];
+                },
+                $rawPaymentInformation->getPaymentMethods()
+            ),
+            'totals' => array_merge(
+                $rawTotals->getData(),
+                [ 'items' => array_map(function ($item) {
+                    /** @var TotalsItemInterface $item */
+                    return [
+                        TotalsItemInterface::KEY_ITEM_ID => $item->getItemId(),
+                        TotalsItemInterface::KEY_PRICE => $item->getPrice(),
+                        TotalsItemInterface::KEY_BASE_PRICE => $item->getBasePrice(),
+                        TotalsItemInterface::KEY_QTY => $item->getQty(),
+                        TotalsItemInterface::KEY_ROW_TOTAL => $item->getRowTotal(),
+                        TotalsItemInterface::KEY_BASE_ROW_TOTAL => $item->getBaseRowTotal(),
+                        TotalsItemInterface::KEY_ROW_TOTAL_WITH_DISCOUNT => $item->getRowTotalWithDiscount(),
+                        TotalsItemInterface::KEY_TAX_AMOUNT => $item->getTaxAmount(),
+                        TotalsItemInterface::KEY_BASE_TAX_AMOUNT => $item->getBaseTaxAmount(),
+                        TotalsItemInterface::KEY_TAX_PERCENT => $item->getTaxPercent(),
+                        TotalsItemInterface::KEY_DISCOUNT_AMOUNT => $item->getDiscountAmount(),
+                        TotalsItemInterface::KEY_BASE_DISCOUNT_AMOUNT => $item->getBaseDiscountAmount(),
+                        TotalsItemInterface::KEY_DISCOUNT_PERCENT => $item->getDiscountPercent(),
+                        TotalsItemInterface::KEY_PRICE_INCL_TAX => $item->getPriceInclTax(),
+                        TotalsItemInterface::KEY_BASE_PRICE_INCL_TAX => $item->getBasePriceInclTax(),
+                        TotalsItemInterface::KEY_ROW_TOTAL_INCL_TAX => $item->getRowTotalInclTax(),
+                        TotalsItemInterface::KEY_BASE_ROW_TOTAL_INCL_TAX => $item->getBaseRowTotalInclTax(),
+                        TotalsItemInterface::KEY_OPTIONS => $item->getOptions(),
+                        TotalsItemInterface::KEY_WEEE_TAX_APPLIED_AMOUNT => $item->getWeeeTaxAppliedAmount(),
+                        TotalsItemInterface::KEY_WEEE_TAX_APPLIED => $item->getWeeeTaxApplied(),
+                        TotalsItemInterface::KEY_NAME => $item->getName(),
+                    ];
+                }, $rawTotals->getItems()) ]
+            )
+        ];
     }
 }
