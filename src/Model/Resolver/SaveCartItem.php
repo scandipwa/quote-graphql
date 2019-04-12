@@ -15,6 +15,8 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 
+use Magento\ConfigurableProduct\Model\Quote\Item\ConfigurableItemOptionValue;
+use Magento\ConfigurableProduct\Model\Quote\Item\ConfigurableItemOptionValueFactory;
 use Magento\Quote\Model\Quote\ProductOptionFactory;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
@@ -80,7 +82,9 @@ class SaveCartItem implements ResolverInterface
         QuoteIdMaskFactory $quoteIdMaskFactory,
         CartRepositoryInterface $quoteRepository,
         ProductOptionFactory $productOptionFactory,
-        ProductOptionExtensionFactory $productOptionExtensionFactory
+        ProductOptionExtensionFactory $productOptionExtensionFactory,
+        ConfigurableItemOptionValueFactory $configurableItemOptionValueFactory
+
     )
     {
         $this->cartItemRepository = $cartItemRepository;
@@ -90,6 +94,7 @@ class SaveCartItem implements ResolverInterface
         $this->quoteRepository = $quoteRepository;
         $this->productOptionFactory = $productOptionFactory;
         $this->productOptionExtensionFactory = $productOptionExtensionFactory;
+        $this->configurableItemOptionValueFactory = $configurableItemOptionValueFactory;
     }
     
     /**
@@ -121,8 +126,17 @@ class SaveCartItem implements ResolverInterface
                 ]
             ]
         );
-        $ext = $this->productOptionExtensionFactory->create(['data'
-            => $args[CartItemInterface::KEY_PRODUCT_OPTION]['extension_attributes']]);
+        $extensionAttrs = $args[CartItemInterface::KEY_PRODUCT_OPTION]['extension_attributes'];
+        
+        $attributes = [];
+        foreach ($extensionAttrs['configurable_item_options'] as $attribute) {
+            $attributes[] = $this->configurableItemOptionValueFactory->create(['data' => $attribute]);
+        }
+    
+        $ext = $this->productOptionExtensionFactory->create(
+            ['data' => ['configurable_item_options' => $attributes]]);
+    
+    
         $options = $this->productOptionFactory->create(['data' => ['extension_attributes' => $ext]]);
         $t->setProductOption($options);
         
