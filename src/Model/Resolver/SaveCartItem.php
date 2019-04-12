@@ -30,6 +30,7 @@ use \Magento\Quote\Api\Data\CartItemInterfaceFactory;
 use Magento\Quote\Api\Data\ProductOptionExtensionFactory;
 use Magento\Quote\Api\GuestCartItemRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
+use Magento\Quote\Model\Webapi\ParamOverriderCartId;
 
 /**
  * Class SaveCartItem
@@ -76,17 +77,23 @@ class SaveCartItem implements ResolverInterface
      * @var ConfigurableItemOptionValueFactory
      */
     private $configurableItemOptionValueFactory;
-    
+
+    /**
+     * @var ParamOverriderCartId
+     */
+    protected $overriderCartId;
+
     /**
      * SaveCartItem constructor.
-     * @param CartItemRepositoryInterface        $cartItemRepository
-     * @param CartItemInterfaceFactory           $cartItemFactory
-     * @param GuestCartItemRepositoryInterface   $guestCartItemRepository
-     * @param QuoteIdMaskFactory                 $quoteIdMaskFactory
-     * @param CartRepositoryInterface            $quoteRepository
-     * @param ProductOptionFactory               $productOptionFactory
-     * @param ProductOptionExtensionFactory      $productOptionExtensionFactory
+     * @param CartItemRepositoryInterface $cartItemRepository
+     * @param CartItemInterfaceFactory $cartItemFactory
+     * @param GuestCartItemRepositoryInterface $guestCartItemRepository
+     * @param QuoteIdMaskFactory $quoteIdMaskFactory
+     * @param CartRepositoryInterface $quoteRepository
+     * @param ProductOptionFactory $productOptionFactory
+     * @param ProductOptionExtensionFactory $productOptionExtensionFactory
      * @param ConfigurableItemOptionValueFactory $configurableItemOptionValueFactory
+     * @param ParamOverriderCartId $overriderCartId
      */
     public function __construct(
         CartItemRepositoryInterface $cartItemRepository,
@@ -96,8 +103,8 @@ class SaveCartItem implements ResolverInterface
         CartRepositoryInterface $quoteRepository,
         ProductOptionFactory $productOptionFactory,
         ProductOptionExtensionFactory $productOptionExtensionFactory,
-        ConfigurableItemOptionValueFactory $configurableItemOptionValueFactory
-    
+        ConfigurableItemOptionValueFactory $configurableItemOptionValueFactory,
+        ParamOverriderCartId $overriderCartId
     )
     {
         $this->cartItemRepository = $cartItemRepository;
@@ -108,6 +115,7 @@ class SaveCartItem implements ResolverInterface
         $this->productOptionFactory = $productOptionFactory;
         $this->productOptionExtensionFactory = $productOptionExtensionFactory;
         $this->configurableItemOptionValueFactory = $configurableItemOptionValueFactory;
+        $this->overriderCartId = $overriderCartId;
     }
     
     /**
@@ -123,10 +131,11 @@ class SaveCartItem implements ResolverInterface
         
         return $quote->getItemById($item_id);
     }
-    
+
     /**
      * @param CartItemInterface $cartItem
-     * @param array             $productOptions
+     * @param array $productOptions
+     * @return CartItemInterface
      */
     private function createConfigurable(CartItemInterface $cartItem, array $productOptions): CartItemInterface
     {
@@ -191,13 +200,19 @@ class SaveCartItem implements ResolverInterface
     {
         $requestCartItem = $args['cartItem'];
         ['qty' => $qty] = $requestCartItem;
+
+        if (!isset($requestCartItem['quote_id'])) {
+            $requestCartItem['quote_id'] = $this->overriderCartId->getOverriddenValue();
+        }
         
         if (array_key_exists('item_id', $requestCartItem)) {
             $item_id = $requestCartItem['item_id'];
             $requestCartItem = $this->getCartItem($item_id, $requestCartItem['quote_id']);
+
             if ($qty > 0) {
                 $requestCartItem->setQty($qty);
             }
+            
             $result = $this->cartItemRepository->save($requestCartItem);
         } else {
             $cartItem = $this->createCartItem($requestCartItem);
