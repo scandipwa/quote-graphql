@@ -87,9 +87,23 @@ class GetCartItems implements ResolverInterface
             $parentIds = $this->configurable->getParentIdsByChild($currentProduct->getId());
             if (count($parentIds)) {
                 $parentProduct = $this->productFactory->create()->load(reset($parentIds));
-                $result[] = array_merge($cartItem->getData(), ['product' => $parentProduct->getData()]);
+                $result[] = array_merge($cartItem->getData(),
+                    ['product' =>
+                        array_merge(
+                            $parentProduct->getData(),
+                            ['model' => $parentProduct]
+                        )
+                    ]
+                );
             } else {
-                $result[] = array_merge($cartItem->getData(), ['product' => $currentProduct->getData()]);
+                $result[] = array_merge($cartItem->getData(),
+                    ['product' =>
+                        array_merge(
+                            $currentProduct->getData(),
+                            ['model' => $currentProduct]
+                        )
+                    ]
+                );
             }
         }
         

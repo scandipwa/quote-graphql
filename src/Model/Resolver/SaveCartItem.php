@@ -192,7 +192,7 @@ class SaveCartItem implements ResolverInterface
         
         if (array_key_exists('item_id', $requestCartItem)) {
             $item_id = $requestCartItem['item_id'];
-            $requestCartItem = $this->getCartItem($item_id, $requestCartItem['quoteId']);
+            $requestCartItem = $this->getCartItem($item_id, $requestCartItem['quote_id']);
             if ($qty > 0) {
                 $requestCartItem->setQty($qty);
             }
