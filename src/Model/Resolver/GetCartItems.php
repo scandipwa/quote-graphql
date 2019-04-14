@@ -21,6 +21,7 @@ use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Quote\Api\CartItemRepositoryInterface;
 use Magento\Quote\Api\GuestCartItemRepositoryInterface;
 use Magento\Catalog\Model\ProductFactory;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
@@ -52,23 +53,30 @@ class GetCartItems implements ResolverInterface
     private $overriderCartId;
 
     /**
+     * @var CartItemRepositoryInterface
+     */
+    private $cartItemRepository;
+
+    /**
      * GetCartItems constructor.
      * @param GuestCartItemRepositoryInterface $guestCartItemRepository
      * @param Configurable $configurable
      * @param ProductFactory $productFactory
-     * @param ParamOverriderCartId $overriderCartId
+     * @param CartItemRepositoryInterface $cartItemRepository
      */
     public function __construct(
         GuestCartItemRepositoryInterface $guestCartItemRepository,
+        CartItemRepositoryInterface $cartItemRepository,
         Configurable $configurable,
         ProductFactory $productFactory,
         ParamOverriderCartId $overriderCartId
     )
     {
-        $this->overriderCartId = $overriderCartId;
+        $this->cartItemRepository = $cartItemRepository;
         $this->guestCartItemRepository = $guestCartItemRepository;
         $this->configurable = $configurable;
         $this->productFactory = $productFactory;
+        $this->overriderCartId = $overriderCartId;
     }
     
     
@@ -85,12 +93,18 @@ class GetCartItems implements ResolverInterface
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        $quoteId = $args['quote_id'] ?? $this->overriderCartId->getOverriddenValue();
-        $cartItems = $this->guestCartItemRepository->getList($quoteId);
+        if (isset($args['quoteId'])) {
+            $cartItems = $this->guestCartItemRepository->getList($args['quoteId']);
+        } else {
+            $cartItems = $this->cartItemRepository->getList($this->overriderCartId->getOverriddenValue());
+        }
+
         if (count($cartItems) < 1) {
             return [];
         }
+
         $result = [];
+
         foreach ($cartItems as $cartItem) {
             $currentProduct = $cartItem->getProduct();
             $parentIds = $this->configurable->getParentIdsByChild($currentProduct->getId());
