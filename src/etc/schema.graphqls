@@ -67,6 +67,7 @@ input AddressInput {
     lastname: String
     email: String
     telephone: String
+    company: String
     street: [String]
 }
 
