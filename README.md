@@ -2,9 +2,11 @@
 
 **QuoteGraphQl** provides basic types and resolvers for Checkout steps.
 
-> ⚠️ This module is WIP
-
 ## Endpoint description
+
+All endpoints here should accept the same data as the API does. For an api reference, please follow [this link](https://devdocs.magento.com/redoc/2.3/customer-rest-api.html#operation/quoteGuestCartItemRepositoryV1SavePost)
+
+> **IMPORTANT NOTE**: every following mutation and query work without specifying the `quote_id` param (or `quoteId`). If none quote id is specified the resolver will attempt to load the quote id from Auth header, where auth token should be present. If quoteId is passed, it will treat it as a guest request, so the `quote_id` should be encoded.
 
 ### saveCartItem
 
@@ -40,12 +42,26 @@ mutation SaveCartItem($cartItem: CartItemInput!) {
 					},{
 						"option_id":"212",
 						"option_value":79
-						
 					}
 				]
 			}
-		}	
+		}
 	}
+}
+```
+
+### removeCartItem
+
+```graphql
+mutation RemoveCartItem($item_id: Int!, $quoteId: String) {
+    removeCartItem(item_id: $item_id, quoteId: $quoteId)
+}
+```
+
+```json
+{
+   "item_id": 1,
+   "quoteId": "s44Xcnya8dmbysAeNTOozFsZCh8tyCH9"
 }
 ```
 
