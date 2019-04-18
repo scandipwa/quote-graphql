@@ -91,7 +91,9 @@ class EstimateShippingCosts implements ResolverInterface {
         array $args = null
     ) {
         /** @var EstimateAddressInterface $address */
-        $address = $this->addressInterfaceFactory->create([ 'data' => $args['address'] ]);
+        $shippingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $args['address'] ])
+            ->setCountryId('US')
+            ->setRegionId(43);
 
         if (isset($args['guestCartId'])) {
             // At this point we assume this is guest cart
@@ -99,7 +101,7 @@ class EstimateShippingCosts implements ResolverInterface {
             $quoteIdMask = $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id');
             $shippingMethods = $this->shippingMethodManagement->estimateByAddress(
                 $quoteIdMask->getQuoteId(),
-                $address
+                $shippingAddressObject
             );
 
             return array_map(function($shippingMethod) {
@@ -122,7 +124,7 @@ class EstimateShippingCosts implements ResolverInterface {
         // at this point we assume it is mine cart
         return $this->shippingMethodManagement->estimateByAddress(
             $this->overriderCartId->getOverriddenValue(),
-            $address
+            $shippingAddressObject
         );
     }
 }

@@ -88,20 +88,23 @@ class SavePaymentInformationAndPlaceOrder implements ResolverInterface {
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
         [ 'paymentMethod' => $paymentMethod, 'billing_address' => $billingAddress ] = $args['paymentInformation'];
+
         $paymentMethod = $this->paymentInterfaceFactory->create([ 'data' => $paymentMethod ]);
-        $billingAddress =$this->addressInterfaceFactory->create([ 'data' => $billingAddress ]);
+        $billingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $billingAddress ])
+            ->setCountryId('US')
+            ->setRegionId(43);
 
         $orderId = isset($args['guestCartId'])
             ? $this->guestPaymentInformationManagement->savePaymentInformationAndPlaceOrder(
                 $args['guestCartId'],
-                $billingAddress->getEmail(),
+                $billingAddressObject->getEmail(),
                 $paymentMethod,
-                $billingAddress
+                $billingAddressObject
             )
             : $this->paymentInformationManagement->savePaymentInformationAndPlaceOrder(
                 $this->overriderCartId->getOverriddenValue(),
                 $paymentMethod,
-                $billingAddress
+                $billingAddressObject
             );
 
         return [ 'orderID' => $orderId ];

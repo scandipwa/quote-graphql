@@ -99,10 +99,18 @@ class SaveAddressInformation implements ResolverInterface {
             ShippingInformationInterface::SHIPPING_METHOD_CODE => $shippingMethodCode
         ] = $requestAddressInformation;
 
+        $shippingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $shippingAddress ])
+            ->setCountryId('US')
+            ->setRegionId(43);
+
+        $billingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $billingAddress ])
+            ->setCountryId('US')
+            ->setRegionId(43);
+
         $addressInformation = $this->shippingInformation->create([
             'data' => [
-                'shipping_address' => $this->addressInterfaceFactory->create([ 'data' => $shippingAddress ]),
-                'billing_address' => $this->addressInterfaceFactory->create([ 'data' => $billingAddress ]),
+                'shipping_address' => $this->addressInterfaceFactory->create([ 'data' => $shippingAddressObject ]),
+                'billing_address' => $this->addressInterfaceFactory->create([ 'data' => $billingAddressObject ]),
                 'shipping_carrier_code' => $shippingCarrierCode,
                 'shipping_method_code' => $shippingMethodCode
             ]
