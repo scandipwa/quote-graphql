@@ -20,6 +20,7 @@ use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Quote\Api\CartItemRepositoryInterface;
 use Magento\Quote\Api\GuestCartItemRepositoryInterface;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
 
@@ -35,21 +36,28 @@ class RemoveCartItem implements ResolverInterface
     private $guestCartItemRepository;
 
     /**
+     * @var CartItemRepositoryInterface
+     */
+    private $cartItemRepository;
+
+    /**
      * @var ParamOverriderCartId
      */
     private $overriderCartId;
 
     /**
      * RemoveCartItem constructor.
-     * @param GuestCartItemRepositoryInterface $guestCartItemRepository
+     * @param CartItemRepositoryInterface $cartItemRepository
      * @param ParamOverriderCartId $overriderCartId
      */
     public function __construct(
+        CartItemRepositoryInterface $cartItemRepository,
         GuestCartItemRepositoryInterface $guestCartItemRepository,
         ParamOverriderCartId $overriderCartId
     )
     {
         $this->overriderCartId = $overriderCartId;
+        $this->cartItemRepository = $cartItemRepository;
         $this->guestCartItemRepository = $guestCartItemRepository;
     }
     
@@ -73,7 +81,11 @@ class RemoveCartItem implements ResolverInterface
     )
     {
         ['item_id' => $itemId] = $args;
-        $quoteId = $args['quote_id'] ?? $this->overriderCartId->getOverriddenValue();
-        return $this->guestCartItemRepository->deleteById($quoteId, $itemId);
+
+        if (isset($args['guestCartId'])) {
+            return $this->guestCartItemRepository->deleteById($args['guestCartId'], $itemId);
+        } else {
+            return $this->cartItemRepository->deleteById($this->overriderCartId->getOverriddenValue(), $itemId);
+        }
     }
 }

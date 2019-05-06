@@ -78,8 +78,7 @@ class GetCartItems implements ResolverInterface
         $this->productFactory = $productFactory;
         $this->overriderCartId = $overriderCartId;
     }
-    
-    
+
     /**
      * Fetches the data from persistence models and format it according to the GraphQL schema.
      *
@@ -93,11 +92,11 @@ class GetCartItems implements ResolverInterface
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        if (isset($args['quoteId'])) {
-            $cartItems = $this->guestCartItemRepository->getList($args['quoteId']);
-        } else {
-            $cartItems = $this->cartItemRepository->getList($this->overriderCartId->getOverriddenValue());
-        }
+         if (isset($args['guestCartId'])) {
+             $cartItems = $this->guestCartItemRepository->getList($args['guestCartId']);
+         } else {
+             $cartItems = $this->cartItemRepository->getList($this->overriderCartId->getOverriddenValue());
+         }
 
         if (count($cartItems) < 1) {
             return [];
@@ -129,7 +128,7 @@ class GetCartItems implements ResolverInterface
                 );
             }
         }
-        
+
         return $result;
     }
 }

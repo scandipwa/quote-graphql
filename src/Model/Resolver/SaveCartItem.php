@@ -117,18 +117,22 @@ class SaveCartItem implements ResolverInterface
         $this->configurableItemOptionValueFactory = $configurableItemOptionValueFactory;
         $this->overriderCartId = $overriderCartId;
     }
-    
+
     /**
-     * @param Int    $item_id
+     * @param Int $item_id
      * @param String $cartId
+     * @param bool $isGuestCartItemRequest
      * @return mixed
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
-    private function getCartItem(Int $item_id, String $cartId): CartItemInterface
+    private function getCartItem(Int $item_id, String $cartId, Bool $isGuestCartItemRequest): CartItemInterface
     {
-        $quoteIdMask = $this->quoteIdMaskFactory->create()->load($cartId, 'masked_id');
-        $quote = $this->quoteRepository->getActive($quoteIdMask->getQuoteId());
-        
+        $quote = $this->quoteRepository->getActive(
+            $isGuestCartItemRequest
+                ? $this->quoteIdMaskFactory->create()->load($cartId, 'masked_id')->getQuoteId()
+                : $cartId
+        );
+
         return $quote->getItemById($item_id);
     }
 
@@ -140,21 +144,20 @@ class SaveCartItem implements ResolverInterface
     private function createConfigurable(CartItemInterface $cartItem, array $productOptions): CartItemInterface
     {
         $extensionAttributes = $productOptions['extension_attributes'];
-        
+
         $attributes = [];
         foreach ($extensionAttributes['configurable_item_options'] as $attribute) {
             $attributes[] = $this->configurableItemOptionValueFactory->create(['data' => $attribute]);
         }
-        
+
         $ext = $this->productOptionExtensionFactory->create(
             ['data' => ['configurable_item_options' => $attributes]]);
-        
-        
+
         $options = $this->productOptionFactory->create(['data' => ['extension_attributes' => $ext]]);
-        
+
         return $cartItem->setProductOption($options);
     }
-    
+
     /**
      * @param array $args
      * @return CartItemInterface
@@ -166,7 +169,8 @@ class SaveCartItem implements ResolverInterface
                 'data' => [
                     CartItemInterface::KEY_SKU => $args['sku'],
                     CartItemInterface::KEY_QTY => $args['qty'],
-                    CartItemInterface::KEY_QUOTE_ID => $args['quote_id'],
+                     CartItemInterface::KEY_QUOTE_ID => $args['guestCartId'],
+//                    CartItemInterface::KEY_QUOTE_ID => $args['quote_id'],
                     CartItemInterface::KEY_PRODUCT_TYPE => $args['product_type']
                 ]
             ]
@@ -175,10 +179,10 @@ class SaveCartItem implements ResolverInterface
         if (array_key_exists(CartItemInterface::KEY_PRODUCT_OPTION, $args)) {
             $cartItem = $this->createConfigurable($cartItem, $args[CartItemInterface::KEY_PRODUCT_OPTION]);
         }
-        
+
         return $cartItem;
     }
-    
+
     /**
      * Fetches the data from persistence models and format it according to the GraphQL schema.
      *
@@ -201,22 +205,34 @@ class SaveCartItem implements ResolverInterface
         $requestCartItem = $args['cartItem'];
         ['qty' => $qty] = $requestCartItem;
 
-        if (!isset($requestCartItem['quote_id'])) {
-            $requestCartItem['quote_id'] = $this->overriderCartId->getOverriddenValue();
-        }
-        
+        $isGuestCartItemRequest = isset($args['guestCartId']);
+//
+//        if (!isset($requestCartItem['quote_id'])) {
+//            $requestCartItem['quote_id'] = $this->overriderCartId->getOverriddenValue();
+//        }
+
+        $requestCartItem['guestCartId'] = $isGuestCartItemRequest
+            ? $args['guestCartId']
+            : $this->overriderCartId->getOverriddenValue();
+
         if (array_key_exists('item_id', $requestCartItem)) {
             $item_id = $requestCartItem['item_id'];
-            $requestCartItem = $this->getCartItem($item_id, $requestCartItem['quote_id']);
+//            $requestCartItem = $this->getCartItem($item_id, $requestCartItem['quote_id']);
+             $requestCartItem = $this->getCartItem($item_id, $requestCartItem['guestCartId'], $isGuestCartItemRequest);
 
             if ($qty > 0) {
                 $requestCartItem->setQty($qty);
             }
-            
-            $result = $this->cartItemRepository->save($requestCartItem);
+
+            $result = $isGuestCartItemRequest
+                ? $this->guestCartItemRepository->save($requestCartItem)
+                :$this->cartItemRepository->save($requestCartItem);
         } else {
             $cartItem = $this->createCartItem($requestCartItem);
-            $result = $this->guestCartItemRepository->save($cartItem);
+            // breaks here for new product in cart
+            $result = $isGuestCartItemRequest
+                ? $this->guestCartItemRepository->save($cartItem)
+                : $this->cartItemRepository->save($cartItem);
         }
 
         return array_merge($result->getData(), ['product' => $result->getProduct()->getData()]);
