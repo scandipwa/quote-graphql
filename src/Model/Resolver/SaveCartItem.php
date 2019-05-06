@@ -169,8 +169,7 @@ class SaveCartItem implements ResolverInterface
                 'data' => [
                     CartItemInterface::KEY_SKU => $args['sku'],
                     CartItemInterface::KEY_QTY => $args['qty'],
-                     CartItemInterface::KEY_QUOTE_ID => $args['guestCartId'],
-//                    CartItemInterface::KEY_QUOTE_ID => $args['quote_id'],
+                    CartItemInterface::KEY_QUOTE_ID => $args['guestCartId'],
                     CartItemInterface::KEY_PRODUCT_TYPE => $args['product_type']
                 ]
             ]
@@ -206,10 +205,6 @@ class SaveCartItem implements ResolverInterface
         ['qty' => $qty] = $requestCartItem;
 
         $isGuestCartItemRequest = isset($args['guestCartId']);
-//
-//        if (!isset($requestCartItem['quote_id'])) {
-//            $requestCartItem['quote_id'] = $this->overriderCartId->getOverriddenValue();
-//        }
 
         $requestCartItem['guestCartId'] = $isGuestCartItemRequest
             ? $args['guestCartId']
@@ -217,7 +212,6 @@ class SaveCartItem implements ResolverInterface
 
         if (array_key_exists('item_id', $requestCartItem)) {
             $item_id = $requestCartItem['item_id'];
-//            $requestCartItem = $this->getCartItem($item_id, $requestCartItem['quote_id']);
              $requestCartItem = $this->getCartItem($item_id, $requestCartItem['guestCartId'], $isGuestCartItemRequest);
 
             if ($qty > 0) {
@@ -229,7 +223,6 @@ class SaveCartItem implements ResolverInterface
                 :$this->cartItemRepository->save($requestCartItem);
         } else {
             $cartItem = $this->createCartItem($requestCartItem);
-            // breaks here for new product in cart
             $result = $isGuestCartItemRequest
                 ? $this->guestCartItemRepository->save($cartItem)
                 : $this->cartItemRepository->save($cartItem);

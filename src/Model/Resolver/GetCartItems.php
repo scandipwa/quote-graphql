@@ -60,9 +60,10 @@ class GetCartItems implements ResolverInterface
     /**
      * GetCartItems constructor.
      * @param GuestCartItemRepositoryInterface $guestCartItemRepository
+     * @param CartItemRepositoryInterface $cartItemRepository
      * @param Configurable $configurable
      * @param ProductFactory $productFactory
-     * @param CartItemRepositoryInterface $cartItemRepository
+     * @param ParamOverriderCartId $overriderCartId
      */
     public function __construct(
         GuestCartItemRepositoryInterface $guestCartItemRepository,
@@ -92,11 +93,11 @@ class GetCartItems implements ResolverInterface
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-         if (isset($args['guestCartId'])) {
-             $cartItems = $this->guestCartItemRepository->getList($args['guestCartId']);
-         } else {
-             $cartItems = $this->cartItemRepository->getList($this->overriderCartId->getOverriddenValue());
-         }
+        if (isset($args['guestCartId'])) {
+            $cartItems = $this->guestCartItemRepository->getList($args['guestCartId']);
+        } else {
+            $cartItems = $this->cartItemRepository->getList($this->overriderCartId->getOverriddenValue());
+        }
 
         if (count($cartItems) < 1) {
             return [];

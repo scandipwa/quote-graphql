@@ -48,6 +48,7 @@ class RemoveCartItem implements ResolverInterface
     /**
      * RemoveCartItem constructor.
      * @param CartItemRepositoryInterface $cartItemRepository
+     * @param GuestCartItemRepositoryInterface $guestCartItemRepository
      * @param ParamOverriderCartId $overriderCartId
      */
     public function __construct(
