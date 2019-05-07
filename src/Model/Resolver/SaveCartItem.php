@@ -220,7 +220,7 @@ class SaveCartItem implements ResolverInterface
 
             $result = $isGuestCartItemRequest
                 ? $this->guestCartItemRepository->save($requestCartItem)
-                :$this->cartItemRepository->save($requestCartItem);
+                : $this->cartItemRepository->save($requestCartItem);
         } else {
             $cartItem = $this->createCartItem($requestCartItem);
             $result = $isGuestCartItemRequest
