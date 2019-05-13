@@ -167,18 +167,21 @@ class SaveCartItem implements ResolverInterface
         $cartItem = $this->cartItemFactory->create(
             [
                 'data' => [
-                    CartItemInterface::KEY_SKU => $args['sku'],
-                    CartItemInterface::KEY_QTY => $args['qty'],
+                    CartItemInterface::KEY_SKU => $args[CartItemInterface::KEY_SKU],
+                    CartItemInterface::KEY_QTY => $args[CartItemInterface::KEY_QTY],
                     CartItemInterface::KEY_QUOTE_ID => $args['guestCartId'],
-                    CartItemInterface::KEY_PRODUCT_TYPE => $args['product_type']
                 ]
             ]
         );
-
+        
+        if (array_key_exists(CartItemInterface::KEY_PRODUCT_TYPE, $args)) {
+            $cartItem->setProductType($args[CartItemInterface::KEY_PRODUCT_TYPE]);
+        }
+        
         if (array_key_exists(CartItemInterface::KEY_PRODUCT_OPTION, $args)) {
             $cartItem = $this->createConfigurable($cartItem, $args[CartItemInterface::KEY_PRODUCT_OPTION]);
         }
-
+        
         return $cartItem;
     }
 
