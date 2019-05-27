@@ -84,9 +84,11 @@ class RemoveCartItem implements ResolverInterface
         ['item_id' => $itemId] = $args;
 
         if (isset($args['guestCartId'])) {
-            return $this->guestCartItemRepository->deleteById($args['guestCartId'], $itemId);
+            $this->guestCartItemRepository->deleteById($args['guestCartId'], $itemId);
         } else {
-            return $this->cartItemRepository->deleteById($this->overriderCartId->getOverriddenValue(), $itemId);
+            $this->cartItemRepository->deleteById($this->overriderCartId->getOverriddenValue(), $itemId);
         }
+
+        return [];
     }
 }

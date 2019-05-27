@@ -164,21 +164,19 @@ class SaveCartItem implements ResolverInterface
      */
     public function createCartItem(array $args): CartItemInterface
     {
-        $cartItem = $this->cartItemFactory->create(
-            [
-                'data' => [
-                    CartItemInterface::KEY_SKU => $args[CartItemInterface::KEY_SKU],
-                    CartItemInterface::KEY_QTY => $args[CartItemInterface::KEY_QTY],
-                    CartItemInterface::KEY_QUOTE_ID => $args['guestCartId'],
-                ]
+        $cartItem = $this->cartItemFactory->create([
+            'data' => [
+                CartItemInterface::KEY_SKU => $args[CartItemInterface::KEY_SKU],
+                CartItemInterface::KEY_QTY => $args[CartItemInterface::KEY_QTY],
+                CartItemInterface::KEY_QUOTE_ID => $args['guestCartId'],
             ]
-        );
+        ]);
         
         if (array_key_exists(CartItemInterface::KEY_PRODUCT_TYPE, $args)) {
             $cartItem->setProductType($args[CartItemInterface::KEY_PRODUCT_TYPE]);
         }
         
-        if (array_key_exists(CartItemInterface::KEY_PRODUCT_OPTION, $args)) {
+        if ($args[CartItemInterface::KEY_PRODUCT_TYPE] === 'configurable' && array_key_exists(CartItemInterface::KEY_PRODUCT_OPTION, $args)) {
             $cartItem = $this->createConfigurable($cartItem, $args[CartItemInterface::KEY_PRODUCT_OPTION]);
         }
         
@@ -214,21 +212,21 @@ class SaveCartItem implements ResolverInterface
             : $this->overriderCartId->getOverriddenValue();
 
         if (array_key_exists('item_id', $requestCartItem)) {
-            $item_id = $requestCartItem['item_id'];
+             $item_id = $requestCartItem['item_id'];
              $requestCartItem = $this->getCartItem($item_id, $requestCartItem['guestCartId'], $isGuestCartItemRequest);
 
             if ($qty > 0) {
                 $requestCartItem->setQty($qty);
             }
 
-            $result = $this->cartItemRepository->save($requestCartItem);
+            $this->cartItemRepository->save($requestCartItem);
         } else {
             $cartItem = $this->createCartItem($requestCartItem);
-            $result = $isGuestCartItemRequest
+            $isGuestCartItemRequest
                 ? $this->guestCartItemRepository->save($cartItem)
-                : $this->cartItemRepository->save($cartItem);
+                : $this->cartItemReposito14ry->save($cartItem);
         }
 
-        return array_merge($result->getData(), ['product' => $result->getProduct()->getData()]);
+        return [];
     }
 }
