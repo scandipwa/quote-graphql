@@ -16,7 +16,9 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 
+use Exception;
 use Magento\ConfigurableProduct\Model\Quote\Item\ConfigurableItemOptionValueFactory;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Quote\Model\Quote\ProductOptionFactory;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
@@ -119,21 +121,16 @@ class SaveCartItem implements ResolverInterface
     }
 
     /**
-     * @param Int $item_id
-     * @param String $cartId
-     * @param bool $isGuestCartItemRequest
+     * @param array $args
      * @return mixed
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @throws NoSuchEntityException
      */
-    private function getCartItem(Int $item_id, String $cartId, Bool $isGuestCartItemRequest): CartItemInterface
+    private function getCartItem(array $args): CartItemInterface
     {
-        $quote = $this->quoteRepository->getActive(
-            $isGuestCartItemRequest
-                ? $this->quoteIdMaskFactory->create()->load($cartId, 'masked_id')->getQuoteId()
-                : $cartId
-        );
-
-        return $quote->getItemById($item_id);
+        $quote = $this->quoteRepository->getActive($args['quote_id']);
+        $cartItem = $quote->getItemById($args['item_id']);
+        $cartItem->setQty($args['qty']);
+        return $cartItem;
     }
 
     /**
@@ -162,37 +159,43 @@ class SaveCartItem implements ResolverInterface
      * @param array $args
      * @return CartItemInterface
      */
-    public function createCartItem(array $args): CartItemInterface
+    private function createCartItem(array $args): CartItemInterface
     {
         $cartItem = $this->cartItemFactory->create([
             'data' => [
                 CartItemInterface::KEY_SKU => $args[CartItemInterface::KEY_SKU],
                 CartItemInterface::KEY_QTY => $args[CartItemInterface::KEY_QTY],
-                CartItemInterface::KEY_QUOTE_ID => $args['guestCartId'],
+                CartItemInterface::KEY_QUOTE_ID => $args[CartItemInterface::KEY_QUOTE_ID],
             ]
         ]);
-        
+
         if (array_key_exists(CartItemInterface::KEY_PRODUCT_TYPE, $args)) {
             $cartItem->setProductType($args[CartItemInterface::KEY_PRODUCT_TYPE]);
         }
-        
-        if ($args[CartItemInterface::KEY_PRODUCT_TYPE] === 'configurable' && array_key_exists(CartItemInterface::KEY_PRODUCT_OPTION, $args)) {
-            $cartItem = $this->createConfigurable($cartItem, $args[CartItemInterface::KEY_PRODUCT_OPTION]);
+
+        if (
+            $args[CartItemInterface::KEY_PRODUCT_TYPE] === 'configurable'
+            && array_key_exists(CartItemInterface::KEY_PRODUCT_OPTION, $args)
+        ) {
+            $cartItem = $this->createConfigurable(
+                $cartItem,
+                $args[CartItemInterface::KEY_PRODUCT_OPTION]
+            );
         }
-        
+
         return $cartItem;
     }
 
     /**
      * Fetches the data from persistence models and format it according to the GraphQL schema.
      *
-     * @param \Magento\Framework\GraphQl\Config\Element\Field $field
+     * @param Field $field
      * @param ContextInterface                                $context
      * @param ResolveInfo                                     $info
      * @param array|null                                      $value
      * @param array|null                                      $args
      * @return mixed|Value
-     * @throws \Exception
+     * @throws Exception
      */
     public function resolve(
         Field $field,
@@ -203,28 +206,20 @@ class SaveCartItem implements ResolverInterface
     )
     {
         $requestCartItem = $args['cartItem'];
-        ['qty' => $qty] = $requestCartItem;
 
         $isGuestCartItemRequest = isset($args['guestCartId']);
 
-        $requestCartItem['guestCartId'] = $isGuestCartItemRequest
-            ? $args['guestCartId']
+        $requestCartItem['quote_id'] = $isGuestCartItemRequest
+            ? $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id')->getQuoteId()
             : $this->overriderCartId->getOverriddenValue();
 
         if (array_key_exists('item_id', $requestCartItem)) {
-             $item_id = $requestCartItem['item_id'];
-             $requestCartItem = $this->getCartItem($item_id, $requestCartItem['guestCartId'], $isGuestCartItemRequest);
-
-            if ($qty > 0) {
-                $requestCartItem->setQty($qty);
-            }
-
-            $this->cartItemRepository->save($requestCartItem);
+            $cartItem = $this->getCartItem($requestCartItem);
+            $this->cartItemRepository->save($cartItem);
         } else {
             $cartItem = $this->createCartItem($requestCartItem);
-            $isGuestCartItemRequest
-                ? $this->guestCartItemRepository->save($cartItem)
-                : $this->cartItemReposito14ry->save($cartItem);
+            $newCartItem = $this->cartItemRepository->save($cartItem);
+            $this->cartItemRepository->save($newCartItem);
         }
 
         return [];

@@ -169,6 +169,7 @@ type TotalsItem {
     weee_tax_applied: Float
     options: String
     name: String
+    sku: String
     product: ProductInterface
 }
 
