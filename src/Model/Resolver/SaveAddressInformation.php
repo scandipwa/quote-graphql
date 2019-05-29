@@ -92,6 +92,7 @@ class SaveAddressInformation implements ResolverInterface {
         array $args = null
     ) {
         $requestAddressInformation = $args['addressInformation'];
+
         [
             ShippingInformationInterface::SHIPPING_ADDRESS => $shippingAddress,
             ShippingInformationInterface::BILLING_ADDRESS => $billingAddress,

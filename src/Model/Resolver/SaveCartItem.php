@@ -33,6 +33,12 @@ use Magento\Quote\Api\Data\ProductOptionExtensionFactory;
 use Magento\Quote\Api\GuestCartItemRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
+use Magento\Catalog\Model\ProductRepository;
+use Magento\Catalog\Model\Product;
+use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
+use Magento\Bundle\Model\Product\Type;
+use Magento\Framework\DataObject;
+use Magento\Catalog\Model\Product\Attribute\Repository;
 
 /**
  * Class SaveCartItem
@@ -86,6 +92,16 @@ class SaveCartItem implements ResolverInterface
     protected $overriderCartId;
 
     /**
+     * @var ProductRepository
+     */
+    protected $productRepository;
+
+    /**
+     * @var Repository
+     */
+    protected $attributeRepository;
+
+    /**
      * SaveCartItem constructor.
      * @param CartItemRepositoryInterface $cartItemRepository
      * @param CartItemInterfaceFactory $cartItemFactory
@@ -96,6 +112,8 @@ class SaveCartItem implements ResolverInterface
      * @param ProductOptionExtensionFactory $productOptionExtensionFactory
      * @param ConfigurableItemOptionValueFactory $configurableItemOptionValueFactory
      * @param ParamOverriderCartId $overriderCartId
+     * @param ProductRepository $productRepository
+     * @param Repository $attributeRepository
      */
     public function __construct(
         CartItemRepositoryInterface $cartItemRepository,
@@ -106,7 +124,9 @@ class SaveCartItem implements ResolverInterface
         ProductOptionFactory $productOptionFactory,
         ProductOptionExtensionFactory $productOptionExtensionFactory,
         ConfigurableItemOptionValueFactory $configurableItemOptionValueFactory,
-        ParamOverriderCartId $overriderCartId
+        ParamOverriderCartId $overriderCartId,
+        ProductRepository $productRepository,
+        Repository $attributeRepository
     )
     {
         $this->cartItemRepository = $cartItemRepository;
@@ -118,72 +138,63 @@ class SaveCartItem implements ResolverInterface
         $this->productOptionExtensionFactory = $productOptionExtensionFactory;
         $this->configurableItemOptionValueFactory = $configurableItemOptionValueFactory;
         $this->overriderCartId = $overriderCartId;
+        $this->productRepository = $productRepository;
+        $this->attributeRepository = $attributeRepository;
     }
 
-    /**
-     * @param array $args
-     * @return mixed
-     * @throws NoSuchEntityException
-     */
-    private function getCartItem(array $args): CartItemInterface
+    private function makeAddRequest(Product $product, $sku = null, $qty = 1)
     {
-        $quote = $this->quoteRepository->getActive($args['quote_id']);
-        $cartItem = $quote->getItemById($args['item_id']);
-        $cartItem->setQty($args['qty']);
-        return $cartItem;
+        $data = [
+            'product' => $product->getEntityId(),
+            'qty' => $qty
+        ];
+
+        switch ($product->getTypeId()) {
+            case Configurable::TYPE_CODE:
+                $data = $this->setConfigurableRequestOptions($product, $sku, $data);
+                break;
+            case Type::TYPE_CODE:
+                $data = $this->setBundleRequestOptions($product, $data);
+                break;
+        }
+
+        $request = new DataObject();
+        $request->setData($data);
+
+        return $request;
     }
 
-    /**
-     * @param CartItemInterface $cartItem
-     * @param array $productOptions
-     * @return CartItemInterface
-     */
-    private function createConfigurable(CartItemInterface $cartItem, array $productOptions): CartItemInterface
+    private function setConfigurableRequestOptions(Product $product, $sku, array $data)
     {
-        $extensionAttributes = $productOptions['extension_attributes'];
+        /** @var Type | Configurable $typedProduct */
+        $typedProduct = $product->getTypeInstance();
 
-        $attributes = [];
-        foreach ($extensionAttributes['configurable_item_options'] as $attribute) {
-            $attributes[] = $this->configurableItemOptionValueFactory->create(['data' => $attribute]);
+        $childProduct = $this->productRepository->get($sku);
+        $productAttributeOptions = $typedProduct->getConfigurableAttributesAsArray($product);
+
+        $superAttributes = [];
+        foreach ($productAttributeOptions as $option) {
+            $superAttributes[$option['attribute_id']] = $childProduct->getData($option['attribute_code']);
         }
 
-        $ext = $this->productOptionExtensionFactory->create(
-            ['data' => ['configurable_item_options' => $attributes]]);
-
-        $options = $this->productOptionFactory->create(['data' => ['extension_attributes' => $ext]]);
-
-        return $cartItem->setProductOption($options);
+        $data['super_attribute'] = $superAttributes;
+        return $data;
     }
 
-    /**
-     * @param array $args
-     * @return CartItemInterface
-     */
-    private function createCartItem(array $args): CartItemInterface
+    private function setBundleRequestOptions(Product $product, array $data)
     {
-        $cartItem = $this->cartItemFactory->create([
-            'data' => [
-                CartItemInterface::KEY_SKU => $args[CartItemInterface::KEY_SKU],
-                CartItemInterface::KEY_QTY => $args[CartItemInterface::KEY_QTY],
-                CartItemInterface::KEY_QUOTE_ID => $args[CartItemInterface::KEY_QUOTE_ID],
-            ]
-        ]);
+        /** @var Type $typedProduct */
+        $typedProduct = $product->getTypeInstance();
 
-        if (array_key_exists(CartItemInterface::KEY_PRODUCT_TYPE, $args)) {
-            $cartItem->setProductType($args[CartItemInterface::KEY_PRODUCT_TYPE]);
+        $selectionCollection = $typedProduct->getSelectionsCollection($typedProduct->getOptionsIds($product), $product);
+
+        $options = [];
+        foreach ($selectionCollection as $proSelection) {
+            $options[$proSelection->getOptionId()] = $proSelection->getSelectionId();
         }
 
-        if (
-            $args[CartItemInterface::KEY_PRODUCT_TYPE] === 'configurable'
-            && array_key_exists(CartItemInterface::KEY_PRODUCT_OPTION, $args)
-        ) {
-            $cartItem = $this->createConfigurable(
-                $cartItem,
-                $args[CartItemInterface::KEY_PRODUCT_OPTION]
-            );
-        }
-
-        return $cartItem;
+        $data['bundle_option'] = $options;
+        return $data;
     }
 
     /**
@@ -214,12 +225,24 @@ class SaveCartItem implements ResolverInterface
             : $this->overriderCartId->getOverriddenValue();
 
         if (array_key_exists('item_id', $requestCartItem)) {
-            $cartItem = $this->getCartItem($requestCartItem);
+            $quote = $this->quoteRepository->getActive($requestCartItem['quote_id']);
+            $cartItem = $quote->getItemById($requestCartItem['item_id']);
+            $cartItem->setQty($requestCartItem['qty']);
             $this->cartItemRepository->save($cartItem);
         } else {
-            $cartItem = $this->createCartItem($requestCartItem);
-            $newCartItem = $this->cartItemRepository->save($cartItem);
-            $this->cartItemRepository->save($newCartItem);
+            $quote = $this->quoteRepository->getActive($requestCartItem['quote_id']);
+            $product = $this->productRepository->get($requestCartItem['sku']);
+            $quote->addProduct($product, $this->makeAddRequest(
+                $product,
+                $requestCartItem['sku'],
+                $requestCartItem['qty']
+            ));
+            $this->quoteRepository->save($quote);
+
+            // Related to bug: https://github.com/magento/magengto2/issues/2991
+            $quote = $this->quoteRepository->getActive($requestCartItem['quote_id']);
+            $quote->setTotalsCollectedFlag(false)->collectTotals();
+            $this->quoteRepository->save($quote);
         }
 
         return [];
