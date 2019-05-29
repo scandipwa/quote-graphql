@@ -90,9 +90,7 @@ class SavePaymentInformationAndPlaceOrder implements ResolverInterface {
         [ 'paymentMethod' => $paymentMethod, 'billing_address' => $billingAddress ] = $args['paymentInformation'];
 
         $paymentMethod = $this->paymentInterfaceFactory->create([ 'data' => $paymentMethod ]);
-        $billingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $billingAddress ])
-            ->setCountryId('US')
-            ->setRegionId(43);
+        $billingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $billingAddress ]);
 
         $orderId = isset($args['guestCartId'])
             ? $this->guestPaymentInformationManagement->savePaymentInformationAndPlaceOrder(

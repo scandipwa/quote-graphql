@@ -91,9 +91,7 @@ class EstimateShippingCosts implements ResolverInterface {
         array $args = null
     ) {
         /** @var EstimateAddressInterface $address */
-        $shippingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $args['address'] ])
-            ->setCountryId('US')
-            ->setRegionId(43);
+        $shippingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $args['address'] ]);
 
         if (isset($args['guestCartId'])) {
             // At this point we assume this is guest cart
