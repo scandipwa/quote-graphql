@@ -17,9 +17,6 @@ namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 
 use Exception;
-use Magento\ConfigurableProduct\Model\Quote\Item\ConfigurableItemOptionValueFactory;
-use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Quote\Model\Quote\ProductOptionFactory;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
@@ -27,10 +24,6 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\CartItemRepositoryInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
-use Magento\Quote\Api\Data\CartItemInterface;
-use \Magento\Quote\Api\Data\CartItemInterfaceFactory;
-use Magento\Quote\Api\Data\ProductOptionExtensionFactory;
-use Magento\Quote\Api\GuestCartItemRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
 use Magento\Catalog\Model\ProductRepository;
@@ -55,7 +48,7 @@ class SaveCartItem implements ResolverInterface
      * @var QuoteIdMaskFactory
      */
     private $quoteIdMaskFactory;
-    
+
     /**
      * @var CartRepositoryInterface
      */
@@ -79,7 +72,6 @@ class SaveCartItem implements ResolverInterface
     /**
      * SaveCartItem constructor.
      * @param CartItemRepositoryInterface $cartItemRepository
-     * @param CartItemInterfaceFactory $cartItemFactory
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
      * @param CartRepositoryInterface $quoteRepository
      * @param ParamOverriderCartId $overriderCartId
@@ -88,31 +80,30 @@ class SaveCartItem implements ResolverInterface
      */
     public function __construct(
         CartItemRepositoryInterface $cartItemRepository,
-        CartItemInterfaceFactory $cartItemFactory,
         QuoteIdMaskFactory $quoteIdMaskFactory,
         CartRepositoryInterface $quoteRepository,
         ParamOverriderCartId $overriderCartId,
         ProductRepository $productRepository,
         Repository $attributeRepository
     ) {
-        $this->cartItemRepository = $cartItemRepository; //
-        $this->quoteIdMaskFactory = $quoteIdMaskFactory; //
-        $this->quoteRepository = $quoteRepository; //
-        $this->overriderCartId = $overriderCartId; //
-        $this->productRepository = $productRepository; //
+        $this->cartItemRepository = $cartItemRepository;
+        $this->quoteIdMaskFactory = $quoteIdMaskFactory;
+        $this->quoteRepository = $quoteRepository;
+        $this->overriderCartId = $overriderCartId;
+        $this->productRepository = $productRepository;
         $this->attributeRepository = $attributeRepository;
     }
 
-    private function makeAddRequest(Product $product, $sku = null, $qty = 1)
+    private function makeAddRequest(Product $product, array $options)
     {
         $data = [
             'product' => $product->getEntityId(),
-            'qty' => $qty
+            'qty' => $options['qty']
         ];
 
         switch ($product->getTypeId()) {
             case Configurable::TYPE_CODE:
-                $data = $this->setConfigurableRequestOptions($product, $sku, $data);
+                $data = $this->setConfigurableRequestOptions($options, $data);
                 break;
             case Type::TYPE_CODE:
                 $data = $this->setBundleRequestOptions($product, $data);
@@ -125,17 +116,13 @@ class SaveCartItem implements ResolverInterface
         return $request;
     }
 
-    private function setConfigurableRequestOptions(Product $product, $sku, array $data)
+    private function setConfigurableRequestOptions(array $options, array $data)
     {
-        /** @var Type | Configurable $typedProduct */
-        $typedProduct = $product->getTypeInstance();
-
-        $childProduct = $this->productRepository->get($sku);
-        $productAttributeOptions = $typedProduct->getConfigurableAttributesAsArray($product);
-
+        $configurableOptions = $options["product_option"]["extension_attributes"]["configurable_item_options"] ?? [];
         $superAttributes = [];
-        foreach ($productAttributeOptions as $option) {
-            $superAttributes[$option['attribute_id']] = $childProduct->getData($option['attribute_code']);
+
+        foreach ($configurableOptions as $option) {
+            $superAttributes[$option['option_id']] = $option['option_value'];
         }
 
         $data['super_attribute'] = $superAttributes;
@@ -195,8 +182,7 @@ class SaveCartItem implements ResolverInterface
             $product = $this->productRepository->get($requestCartItem['sku']);
             $quote->addProduct($product, $this->makeAddRequest(
                 $product,
-                $requestCartItem['sku'],
-                $requestCartItem['qty']
+                $requestCartItem
             ));
             $this->quoteRepository->save($quote);
 
