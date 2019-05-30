@@ -50,17 +50,7 @@ class SaveCartItem implements ResolverInterface
      * @var CartItemRepositoryInterface
      */
     private $cartItemRepository;
-    
-    /**
-     * @var CartItemInterfaceFactory
-     */
-    private $cartItemFactory;
-    
-    /**
-     * @var GuestCartItemRepositoryInterface
-     */
-    private $guestCartItemRepository;
-    
+
     /**
      * @var QuoteIdMaskFactory
      */
@@ -70,21 +60,6 @@ class SaveCartItem implements ResolverInterface
      * @var CartRepositoryInterface
      */
     private $quoteRepository;
-    
-    /**
-     * @var ProductOptionFactory
-     */
-    private $productOptionFactory;
-    
-    /**
-     * @var ProductOptionExtensionFactory
-     */
-    private $productOptionExtensionFactory;
-    
-    /**
-     * @var ConfigurableItemOptionValueFactory
-     */
-    private $configurableItemOptionValueFactory;
 
     /**
      * @var ParamOverriderCartId
@@ -105,12 +80,8 @@ class SaveCartItem implements ResolverInterface
      * SaveCartItem constructor.
      * @param CartItemRepositoryInterface $cartItemRepository
      * @param CartItemInterfaceFactory $cartItemFactory
-     * @param GuestCartItemRepositoryInterface $guestCartItemRepository
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
      * @param CartRepositoryInterface $quoteRepository
-     * @param ProductOptionFactory $productOptionFactory
-     * @param ProductOptionExtensionFactory $productOptionExtensionFactory
-     * @param ConfigurableItemOptionValueFactory $configurableItemOptionValueFactory
      * @param ParamOverriderCartId $overriderCartId
      * @param ProductRepository $productRepository
      * @param Repository $attributeRepository
@@ -118,27 +89,17 @@ class SaveCartItem implements ResolverInterface
     public function __construct(
         CartItemRepositoryInterface $cartItemRepository,
         CartItemInterfaceFactory $cartItemFactory,
-        GuestCartItemRepositoryInterface $guestCartItemRepository,
         QuoteIdMaskFactory $quoteIdMaskFactory,
         CartRepositoryInterface $quoteRepository,
-        ProductOptionFactory $productOptionFactory,
-        ProductOptionExtensionFactory $productOptionExtensionFactory,
-        ConfigurableItemOptionValueFactory $configurableItemOptionValueFactory,
         ParamOverriderCartId $overriderCartId,
         ProductRepository $productRepository,
         Repository $attributeRepository
-    )
-    {
-        $this->cartItemRepository = $cartItemRepository;
-        $this->cartItemFactory = $cartItemFactory;
-        $this->guestCartItemRepository = $guestCartItemRepository;
-        $this->quoteIdMaskFactory = $quoteIdMaskFactory;
-        $this->quoteRepository = $quoteRepository;
-        $this->productOptionFactory = $productOptionFactory;
-        $this->productOptionExtensionFactory = $productOptionExtensionFactory;
-        $this->configurableItemOptionValueFactory = $configurableItemOptionValueFactory;
-        $this->overriderCartId = $overriderCartId;
-        $this->productRepository = $productRepository;
+    ) {
+        $this->cartItemRepository = $cartItemRepository; //
+        $this->quoteIdMaskFactory = $quoteIdMaskFactory; //
+        $this->quoteRepository = $quoteRepository; //
+        $this->overriderCartId = $overriderCartId; //
+        $this->productRepository = $productRepository; //
         $this->attributeRepository = $attributeRepository;
     }
 
