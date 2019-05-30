@@ -8,53 +8,139 @@ All endpoints here should accept the same data as the API does. For an api refer
 
 > **IMPORTANT NOTE**: every following mutation and query work without specifying the `quote_id` param (or `quoteId`). If none quote id is specified the resolver will attempt to load the quote id from Auth header, where auth token should be present. If quoteId is passed, it will treat it as a guest request, so the `quote_id` should be encoded.
 
-### saveCartItem
+### getCartForCustomer
 
-This endpoint allows to submit items to cart following the default API payload schema. In beneath example is a configurable product option addition to cart.
+This endpoint allows to get full cart data (items + totals).
 
 ```graphql
-mutation SaveCartItem($cartItem: CartItemInput!) {
-    saveCartItem(cartItem: $cartItem) {
-        item_id
-        name
-        price
-        product_type
-        qty
-        quote_id
-        sku
+query saveCartItem ($_guestCartId_0: String) {
+    getCartForCustomer(guestCartId: $_guestCartId_0) {
+        id
+        tax_amount
+        subtotal
+        discount_amount
+        subtotal_with_discount
+        grand_total
+        items {
+            item_id
+            qty
+            product {
+                price {
+                    maximalPrice {
+                        amount {
+                            value
+                            currency
+                        }
+                        adjustments {
+                            code
+                            amount {
+                                value
+                                currency
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 ```
 
 ```json
 {
-	"cartItem": {
-		"sku":"n31189077-1",
-		"product_type":"configurable",
-		"qty":1,
-		"quote_id":"s44Xcnya8dmbysAeNTOozFsZCh8tyCH9",
-		"product_option":{
-			"extension_attributes":{
-				"configurable_item_options":[
-					{
-						"option_id":"93",
-						"option_value":75
-					},{
-						"option_id":"212",
-						"option_value":79
-					}
-				]
-			}
-		}
-	}
+  "_guestCartId_0":"xIXmScRLWb5ntIEsYe2ymzrVXYraivGx"
+}
+```
+
+### saveCartItem
+
+This endpoint allows to submit items to cart following the default API payload schema. In beneath example is a simple product option addition to cart.
+
+```graphql
+mutation saveCartItem ($_cartItem_0: CartItemInput!, $_guestCartId_0: String) {
+    saveCartItem(cartItem: $_cartItem_0, guestCartId: $_guestCartId_0) {
+        getCartForCustomer(guestCartId: $_guestCartId_0) {
+            id
+            tax_amount
+            subtotal
+            discount_amount
+            subtotal_with_discount
+            grand_total
+            items {
+                item_id
+                qty
+                product {
+                    price {
+                        maximalPrice {
+                            amount {
+                                value
+                                currency
+                            }
+                            adjustments {
+                                code
+                                amount {
+                                    value
+                                    currency
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+```json
+{
+  "_cartItem_0":{
+    "sku":"Test simple product",
+    "product_type":"simple",
+    "qty":1,
+    "product_option": {
+        "extension_attributes":{}
+    }
+  },
+  "_guestCartId_0":"xIXmScRLWb5ntIEsYe2ymzrVXYraivGx"
 }
 ```
 
 ### removeCartItem
 
 ```graphql
-mutation RemoveCartItem($item_id: Int!, $quoteId: String) {
-    removeCartItem(item_id: $item_id, quoteId: $quoteId)
+mutation RemoveCartItem($item_id: Int!, $_guestCartId_0: String) {
+    removeCartItem(item_id: $item_id, guestCartId: $_guestCartId_0) {
+        getCartForCustomer(guestCartId: $_guestCartId_0) {
+            id
+            tax_amount
+            subtotal
+            discount_amount
+            subtotal_with_discount
+            grand_total
+            items {
+                item_id
+                qty
+                product {
+                    price {
+                        maximalPrice {
+                            amount {
+                                value
+                                currency
+                            }
+                            adjustments {
+                                code
+                                amount {
+                                    value
+                                    currency
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 ```
 
