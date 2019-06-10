@@ -93,36 +93,26 @@ class EstimateShippingCosts implements ResolverInterface {
         /** @var EstimateAddressInterface $address */
         $shippingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $args['address'] ]);
 
-        if (isset($args['guestCartId'])) {
-            // At this point we assume this is guest cart
-            /** @var QuoteIdMask $quoteIdMask */
-            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id');
-            $shippingMethods = $this->shippingMethodManagement->estimateByAddress(
-                $quoteIdMask->getQuoteId(),
-                $shippingAddressObject
-            );
+        $cartId = isset($args['guestCartId'])
+            ? $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id')->getQuoteId()
+            : $this->overriderCartId->getOverriddenValue();
 
-            return array_map(function($shippingMethod) {
-                /** @var ShippingMethodInterface $shippingMethod */
-                return [
-                    'carrier_code' => $shippingMethod->getCarrierCode(),
-                    'method_code' => $shippingMethod->getMethodCode(),
-                    'carrier_title' => $shippingMethod->getCarrierTitle(),
-                    'method_title' => $shippingMethod->getMethodTitle(),
-                    'error_message' => $shippingMethod->getErrorMessage(),
-                    'amount' => $shippingMethod->getAmount(),
-                    'base_amount' => $shippingMethod->getBaseAmount(),
-                    'price_excl_tax' => $shippingMethod->getPriceExclTax(),
-                    'price_incl_tax' => $shippingMethod->getPriceInclTax(),
-                    'available' => $shippingMethod->getAvailable()
-                ];
-            }, $shippingMethods);
-        }
+        $shippingMethods = $this->shippingMethodManagement->estimateByAddress($cartId, $shippingAddressObject);
 
-        // at this point we assume it is mine cart
-        return $this->shippingMethodManagement->estimateByAddress(
-            $this->overriderCartId->getOverriddenValue(),
-            $shippingAddressObject
-        );
+        return array_map(function($shippingMethod) {
+            /** @var ShippingMethodInterface $shippingMethod */
+            return [
+                'carrier_code' => $shippingMethod->getCarrierCode(),
+                'method_code' => $shippingMethod->getMethodCode(),
+                'carrier_title' => $shippingMethod->getCarrierTitle(),
+                'method_title' => $shippingMethod->getMethodTitle(),
+                'error_message' => $shippingMethod->getErrorMessage(),
+                'amount' => $shippingMethod->getAmount(),
+                'base_amount' => $shippingMethod->getBaseAmount(),
+                'price_excl_tax' => $shippingMethod->getPriceExclTax(),
+                'price_incl_tax' => $shippingMethod->getPriceInclTax(),
+                'available' => $shippingMethod->getAvailable()
+            ];
+        }, $shippingMethods);
     }
 }
