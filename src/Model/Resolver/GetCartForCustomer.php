@@ -134,9 +134,15 @@ class GetCartForCustomer implements ResolverInterface
             }
         }
 
+        $address = $cart->isVirtual() ? $cart->getBillingAddress() : $cart->getShippingAddress();
+        $tax_amount = $address->getTaxAmount();
+
         return array_merge(
             $cart->getData(),
-            ['items' => $itemsData]
+            [
+                'items' => $itemsData,
+                'tax_amount' => $tax_amount
+            ]
         );
     }
 }
