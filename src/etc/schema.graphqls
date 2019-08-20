@@ -24,7 +24,8 @@ type Query {
 }
 
 input CartItemInput {
-    sku: String!
+    id: CartItemId
+    sku: String
     qty: Int!
     quote_id: String
     item_id: Int
@@ -32,9 +33,13 @@ input CartItemInput {
     product_option: ProductOptionInput
 }
 
+input CartItemId {
+    sku: String,
+    item_id: Int
+}
+
 input ProductOptionInput {
     extension_attributes: ExtensionsAttributeInput
-
 }
 
 input ExtensionsAttributeInput {

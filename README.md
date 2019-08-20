@@ -56,6 +56,9 @@ query GetCartForCustomer ($_guestCartId_0: String) {
 
 ### saveCartItem
 
+type `cartItem` now implements sub-type of CartItemId, that allows to reference by one of many:
+item_id or product SKU. This will become non-nullable in the future releases, when "sku" and "item_id" will be dropped. 
+
 This endpoint allows to submit items to cart following the default API payload schema. In beneath example is a simple product option addition to cart.
 
 ```graphql
