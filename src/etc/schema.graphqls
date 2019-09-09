@@ -106,6 +106,7 @@ type QuoteData implements TotalsObject  {
     store_id: Int
     customer_tax_class_id: Int
     items_qty: Float
+    coupon_code: String
 }
 
 type OrderIdObject {
