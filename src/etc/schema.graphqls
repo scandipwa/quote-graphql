@@ -17,6 +17,8 @@ type Mutation {
     savePaymentInformationAndPlaceOrder(paymentInformation: PaymentInformation!, guestCartId: String): OrderIdObject @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SavePaymentInformationAndPlaceOrder")
     saveCartItem(cartItem: CartItemInput!, guestCartId: String): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveCartItem")
     removeCartItem(guestCartId: String, item_id: Int!): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCartItem")
+    applyCoupon(guestCartId: String, coupon_code: String!): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ApplyCoupon")
+    removeCoupon(guestCartId: String): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCoupon")
 }
 
 type Query {
