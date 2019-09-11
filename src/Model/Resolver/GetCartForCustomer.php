@@ -24,6 +24,7 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
+use Magento\Quote\Model\Quote\TotalsCollector;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 
@@ -55,6 +56,11 @@ class GetCartForCustomer implements ResolverInterface
     protected $productFactory;
 
     /**
+     * @var TotalsCollector
+     */
+    protected $totalsCollector;
+
+    /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
      * @param CartManagementInterface $quoteManagement
@@ -67,7 +73,8 @@ class GetCartForCustomer implements ResolverInterface
         CartManagementInterface $quoteManagement,
         GuestCartRepositoryInterface $guestCartRepository,
         Configurable $configurable,
-        ProductFactory $productFactory
+        ProductFactory $productFactory,
+        TotalsCollector $totalsCollector
     )
     {
         $this->quoteManagement = $quoteManagement;
@@ -75,16 +82,17 @@ class GetCartForCustomer implements ResolverInterface
         $this->guestCartRepository = $guestCartRepository;
         $this->configurable = $configurable;
         $this->productFactory = $productFactory;
+        $this->totalsCollector = $totalsCollector;
     }
 
     /**
      * Fetches the data from persistence models and format it according to the GraphQL schema.
      *
-     * @param Field            $field
+     * @param Field $field
      * @param ContextInterface $context
-     * @param ResolveInfo      $info
-     * @param array|null       $value
-     * @param array|null       $args
+     * @param ResolveInfo $info
+     * @param array|null $value
+     * @param array|null $args
      * @return Value|\Magento\Quote\Api\Data\CartInterface|mixed
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
@@ -136,12 +144,15 @@ class GetCartForCustomer implements ResolverInterface
 
         $address = $cart->isVirtual() ? $cart->getBillingAddress() : $cart->getShippingAddress();
         $tax_amount = $address->getTaxAmount();
+        $cartTotals = $this->totalsCollector->collectQuoteTotals($cart);
+        $discount_amount = $cartTotals->getDiscountAmount();
 
         return array_merge(
             $cart->getData(),
             [
                 'items' => $itemsData,
-                'tax_amount' => $tax_amount
+                'tax_amount' => $tax_amount,
+                'discount_amount' => $discount_amount
             ]
         );
     }
