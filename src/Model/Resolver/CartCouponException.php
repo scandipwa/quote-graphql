@@ -21,3 +21,4 @@ class CartCouponException extends LocalizedException
         parent::__construct($phrase, $cause, $code);
     }
 }
+
