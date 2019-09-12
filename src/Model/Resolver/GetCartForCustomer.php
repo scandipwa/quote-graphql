@@ -129,7 +129,7 @@ class GetCartForCustomer extends CartResolver
         $cartTotals = $this->totalsCollector->collectQuoteTotals($cart);
         $discount_amount = $cartTotals->getDiscountAmount();
 
-        $data = array_merge(
+        return array_merge(
             $cart->getData(),
             [
                 'items' => $itemsData,
@@ -137,7 +137,5 @@ class GetCartForCustomer extends CartResolver
                 'discount_amount' => $discount_amount
             ]
         );
-
-        return $data;
     }
 }
