@@ -87,20 +87,16 @@ class ApplyCoupon extends CartResolver
             throw new GraphQlInputException(__('Coupon Code can not be empty'));
         }
 
-        $cart = $this->getCart($args['guestCartId']);
-        $cartId = $cart->getId();
+        $cart = $this->getCart($args);
 
-        if ($cartId === null) {
-            throw new \Exception("Cart could not be found");
-        }
-
-        if ($cart->getItemsCount() < 1) {
+        if($cart->getItemsCount() < 1) {
             throw new CartCouponException(__("Cart does not contain products"));
         }
 
+        $cartId = $cart->getId();
         $appliedCouponCode = $this->couponManagement->get($cartId);
 
-        if ($appliedCouponCode !== null) {
+        if($appliedCouponCode !== null){
             throw new CartCouponException(
                 __('A coupon is already applied to the cart. Please remove it to apply another.')
             );

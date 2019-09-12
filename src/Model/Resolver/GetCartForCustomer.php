@@ -88,12 +88,7 @@ class GetCartForCustomer extends CartResolver
         array $args = null
     )
     {
-        $cart = $this->getCart($args['guestCartId']);
-        $cartId = $cart->getId();
-
-        if ($cartId === null) {
-            throw new \Exception("Cart could not be found");
-        }
+        $cart = $this->getCart($args);
 
         $itemsData = [];
 

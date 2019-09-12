@@ -31,22 +31,53 @@ abstract class CartResolver implements ResolverInterface
     /**
      * @param string|null $guestCartId
      * @return CartInterface
-     * @throws NoSuchEntityException NotFoundException
+     * @throws NotFoundException
+     * @throws UnexpectedValueException
      */
-    protected function getCart(string $guestCartId = null): CartInterface
+    protected function getCart(array $args = null): CartInterface
     {
-        if ($guestCartId !== null) {
-            // At this point we assume this is guest cart
+        $guestCartId = isset($args['guestCartId'])
+            ? $args['guestCartId']
+            : null;
+
+        $cart = $guestCartId !== null
+            ? $this->getCartForGuest($guestCartId)
+            : $this->getCartForLoggedInUser();
+
+        // We check cartId in case magento initializes new cart, if it is not found
+        $cartId = $cart->getId();
+        if ($cartId === null)
+            throw new \UnexpectedValueException("Unable to retrieve cart, cart ID is null");
+
+        return $cart;
+    }
+
+    /**
+     * @param string $guestCartId
+     * @return CartInterface
+     * @throws UnexpectedValueException
+     */
+    private function getCartForGuest(string $guestCartId)
+    {
+        try {
             return $this->guestCartRepository->get($guestCartId);
-        } else {
-            try {
-                // At this point we assume it is mine cart
-                return $this->quoteManagement->getCartForCustomer(
-                    $this->overriderCustomerId->getOverriddenValue()
-                );
-            } catch (NoSuchEntityException $e) {
-                throw new NotFoundException("Unable to retrieve cart. guestCartId is missing or you are not logged in", 12, $e);
-            }
+        } catch (NoSuchEntityException $e) {
+            throw new \UnexpectedValueException("Unable to retrieve cart. guestCardId is invalid", 12, $e);
+        }
+    }
+
+    /**
+     * @return CartInterface
+     * @throws UnexpectedValueException
+     */
+    private function getCartForLoggedInUser()
+    {
+        try {
+            return $this->quoteManagement->getCartForCustomer(
+                $this->overriderCustomerId->getOverriddenValue()
+            );
+        } catch (NoSuchEntityException $e) {
+            throw new \UnexpectedValueException(__("Unable to retrieve cart. guestCartId is missing or you are not logged in"), 13, $e);
         }
     }
 }
