@@ -36,23 +36,8 @@ use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
  * Class RemoveCartItem
  * @package ScandiPWA\QuoteGraphQl\Model\Resolver
  */
-class RemoveCoupon implements ResolverInterface
+class RemoveCoupon extends CartResolver
 {
-    /**
-     * @var QuoteManagement
-     */
-    protected $quoteManagement;
-
-    /**
-     * @var ParamOverriderCustomerId
-     */
-    protected $overriderCustomerId;
-
-    /**
-     * @var GuestCartRepositoryInterface
-     */
-    protected $guestCartRepository;
-
     /**
      * @var CouponManagementInterface
      */
@@ -72,9 +57,7 @@ class RemoveCoupon implements ResolverInterface
         CouponManagementInterface $couponManagement
     )
     {
-        $this->quoteManagement = $quoteManagement;
-        $this->overriderCustomerId = $overriderCustomerId;
-        $this->guestCartRepository = $guestCartRepository;
+        parent::__construct($guestCartRepository, $overriderCustomerId, $quoteManagement);
         $this->couponManagement = $couponManagement;
     }
 
@@ -97,29 +80,18 @@ class RemoveCoupon implements ResolverInterface
         array $args = null
     )
     {
-        if (isset($args['guestCartId'])) {
-            // At this point we assume this is guest cart
-            $cart = $this->guestCartRepository->get($args['guestCartId']);
-        } else {
-            // at this point we assume it is mine cart
-            $cart = $this->quoteManagement->getCartForCustomer(
-                $this->overriderCustomerId->getOverriddenValue()
-            );
-        }
-
+        $cart = $this->getCart($args['guestCartId']);
         $cartId = $cart->getId();
 
-        try {
-            $this->couponManagement->remove($cartId);
-        } catch (NoSuchEntityException $e) {
-            $message = $e->getMessage();
-            if (preg_match('/The "\d+" Cart doesn\'t contain products/', $message)) {
-                $message = 'Cart does not contain products';
-            }
-            throw new GraphQlNoSuchEntityException(__($message), $e);
-        } catch (CouldNotDeleteException $e) {
-            throw new LocalizedException(__($e->getMessage()), $e);
+        if($cartId === null){
+            throw new \Exception("Cart could not be found");
         }
+
+        if($cart->getItemsCount() < 1) {
+            throw new CartCouponException(__("Cart does not contain products"));
+        }
+
+        $this->couponManagement->remove($cartId);
 
         return [];
     }

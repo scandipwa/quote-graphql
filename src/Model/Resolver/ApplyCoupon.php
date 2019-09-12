@@ -26,6 +26,7 @@ use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\CartManagementInterface;
+use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Quote\Api\CouponManagementInterface;
 use Magento\Quote\Model\QuoteManagement;
@@ -36,23 +37,8 @@ use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
  * Class RemoveCartItem
  * @package ScandiPWA\QuoteGraphQl\Model\Resolver
  */
-class ApplyCoupon implements ResolverInterface
+class ApplyCoupon extends CartResolver
 {
-    /**
-     * @var QuoteManagement
-     */
-    protected $quoteManagement;
-
-    /**
-     * @var ParamOverriderCustomerId
-     */
-    protected $overriderCustomerId;
-
-    /**
-     * @var GuestCartRepositoryInterface
-     */
-    protected $guestCartRepository;
-
     /**
      * @var CouponManagementInterface
      */
@@ -72,9 +58,7 @@ class ApplyCoupon implements ResolverInterface
         CouponManagementInterface $couponManagement
     )
     {
-        $this->quoteManagement = $quoteManagement;
-        $this->overriderCustomerId = $overriderCustomerId;
-        $this->guestCartRepository = $guestCartRepository;
+        parent::__construct($guestCartRepository, $overriderCustomerId, $quoteManagement);
         $this->couponManagement = $couponManagement;
     }
 
@@ -100,39 +84,29 @@ class ApplyCoupon implements ResolverInterface
         $couponCode = $args['coupon_code'];
 
         if (empty($couponCode)) {
-            throw new GraphQlInputException(__('Required parameter "coupon_code" is missing'));
+            throw new GraphQlInputException(__('Coupon Code can not be empty'));
         }
 
-        if (isset($args['guestCartId'])) {
-            // At this point we assume this is guest cart
-            $cart = $this->guestCartRepository->get($args['guestCartId']);
-        } else {
-            // at this point we assume it is mine cart
-            $cart = $this->quoteManagement->getCartForCustomer(
-                $this->overriderCustomerId->getOverriddenValue()
-            );
-        }
-
+        $cart = $this->getCart($args['guestCartId']);
         $cartId = $cart->getId();
 
-        /* Check current cart does not have coupon code applied */
+        if($cartId === null){
+            throw new \Exception("Cart could not be found");
+        }
+
+        if($cart->getItemsCount() < 1) {
+            throw new CartCouponException(__("Cart does not contain products"));
+        }
+
         $appliedCouponCode = $this->couponManagement->get($cartId);
-        if (!empty($appliedCouponCode)) {
-            throw new GraphQlInputException(
-                __('A coupon is already applied to the cart. Please remove it to apply another')
+
+        if($appliedCouponCode !== null){
+            throw new CartCouponException(
+                __('A coupon is already applied to the cart. Please remove it to apply another.')
             );
         }
-        try {
-            $this->couponManagement->set($cartId, $couponCode);
-        } catch (NoSuchEntityException $e) {
-            $message = $e->getMessage();
-            if (preg_match('/The "\d+" Cart doesn\'t contain products/', $message)) {
-                $message = 'Cart does not contain products.';
-            }
-            throw new GraphQlNoSuchEntityException(__($message), $e);
-        } catch (CouldNotSaveException $e) {
-            throw new LocalizedException(__($e->getMessage()), $e);
-        }
+
+        $this->couponManagement->set($cartId, $couponCode);
 
         return [];
     }
