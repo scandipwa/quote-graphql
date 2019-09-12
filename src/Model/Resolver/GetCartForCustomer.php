@@ -91,7 +91,7 @@ class GetCartForCustomer extends CartResolver
         $cart = $this->getCart($args['guestCartId']);
         $cartId = $cart->getId();
 
-        if($cartId === null){
+        if ($cartId === null) {
             throw new \Exception("Cart could not be found");
         }
 

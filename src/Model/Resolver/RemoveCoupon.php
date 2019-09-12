@@ -83,11 +83,11 @@ class RemoveCoupon extends CartResolver
         $cart = $this->getCart($args['guestCartId']);
         $cartId = $cart->getId();
 
-        if($cartId === null){
+        if ($cartId === null) {
             throw new \Exception("Cart could not be found");
         }
 
-        if($cart->getItemsCount() < 1) {
+        if ($cart->getItemsCount() < 1) {
             throw new CartCouponException(__("Cart does not contain products"));
         }
 

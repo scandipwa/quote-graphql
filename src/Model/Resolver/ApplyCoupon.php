@@ -90,17 +90,17 @@ class ApplyCoupon extends CartResolver
         $cart = $this->getCart($args['guestCartId']);
         $cartId = $cart->getId();
 
-        if($cartId === null){
+        if ($cartId === null) {
             throw new \Exception("Cart could not be found");
         }
 
-        if($cart->getItemsCount() < 1) {
+        if ($cart->getItemsCount() < 1) {
             throw new CartCouponException(__("Cart does not contain products"));
         }
 
         $appliedCouponCode = $this->couponManagement->get($cartId);
 
-        if($appliedCouponCode !== null){
+        if ($appliedCouponCode !== null) {
             throw new CartCouponException(
                 __('A coupon is already applied to the cart. Please remove it to apply another.')
             );
