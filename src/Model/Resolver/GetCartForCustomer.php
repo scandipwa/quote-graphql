@@ -28,23 +28,8 @@ use Magento\Quote\Model\Quote\TotalsCollector;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 
-class GetCartForCustomer implements ResolverInterface
+class GetCartForCustomer extends CartResolver
 {
-    /**
-     * @var QuoteManagement
-     */
-    protected $quoteManagement;
-
-    /**
-     * @var ParamOverriderCustomerId
-     */
-    protected $overriderCustomerId;
-
-    /**
-     * @var GuestCartRepositoryInterface
-     */
-    protected $guestCartRepository;
-
     /**
      * @var Configurable
      */
@@ -75,11 +60,10 @@ class GetCartForCustomer implements ResolverInterface
         Configurable $configurable,
         ProductFactory $productFactory,
         TotalsCollector $totalsCollector
+
     )
     {
-        $this->quoteManagement = $quoteManagement;
-        $this->overriderCustomerId = $overriderCustomerId;
-        $this->guestCartRepository = $guestCartRepository;
+        parent::__construct($guestCartRepository, $overriderCustomerId, $quoteManagement);
         $this->configurable = $configurable;
         $this->productFactory = $productFactory;
         $this->totalsCollector = $totalsCollector;
@@ -102,15 +86,13 @@ class GetCartForCustomer implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    ) {
-        if (isset($args['guestCartId'])) {
-            // At this point we assume this is guest cart
-            $cart = $this->guestCartRepository->get($args['guestCartId']);
-        } else {
-            // at this point we assume it is mine cart
-            $cart = $this->quoteManagement->getCartForCustomer(
-                $this->overriderCustomerId->getOverriddenValue()
-            );
+    )
+    {
+        $cart = $this->getCart($args['guestCartId']);
+        $cartId = $cart->getId();
+
+        if($cartId === null){
+            throw new \Exception("Cart could not be found");
         }
 
         $itemsData = [];
@@ -147,7 +129,7 @@ class GetCartForCustomer implements ResolverInterface
         $cartTotals = $this->totalsCollector->collectQuoteTotals($cart);
         $discount_amount = $cartTotals->getDiscountAmount();
 
-        return array_merge(
+        $data = array_merge(
             $cart->getData(),
             [
                 'items' => $itemsData,
@@ -155,5 +137,7 @@ class GetCartForCustomer implements ResolverInterface
                 'discount_amount' => $discount_amount
             ]
         );
+
+        return $data;
     }
 }
