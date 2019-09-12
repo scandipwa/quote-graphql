@@ -36,12 +36,8 @@ abstract class CartResolver implements ResolverInterface
      */
     protected function getCart(array $args = null): CartInterface
     {
-        $guestCartId = isset($args['guestCartId'])
-            ? $args['guestCartId']
-            : null;
-
-        $cart = $guestCartId !== null
-            ? $this->getCartForGuest($guestCartId)
+        $cart = array_key_exists('guestCartId', $args)
+            ? $this->getCartForGuest($args['guestCartId'])
             : $this->getCartForLoggedInUser();
 
         // We check cartId in case magento initializes new cart, if it is not found

@@ -24,7 +24,6 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
-use Magento\Quote\Model\Quote\TotalsCollector;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 
@@ -41,11 +40,6 @@ class GetCartForCustomer extends CartResolver
     protected $productFactory;
 
     /**
-     * @var TotalsCollector
-     */
-    protected $totalsCollector;
-
-    /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
      * @param CartManagementInterface $quoteManagement
@@ -58,15 +52,13 @@ class GetCartForCustomer extends CartResolver
         CartManagementInterface $quoteManagement,
         GuestCartRepositoryInterface $guestCartRepository,
         Configurable $configurable,
-        ProductFactory $productFactory,
-        TotalsCollector $totalsCollector
+        ProductFactory $productFactory
 
     )
     {
         parent::__construct($guestCartRepository, $overriderCustomerId, $quoteManagement);
         $this->configurable = $configurable;
         $this->productFactory = $productFactory;
-        $this->totalsCollector = $totalsCollector;
     }
 
     /**
@@ -121,8 +113,7 @@ class GetCartForCustomer extends CartResolver
 
         $address = $cart->isVirtual() ? $cart->getBillingAddress() : $cart->getShippingAddress();
         $tax_amount = $address->getTaxAmount();
-        $cartTotals = $this->totalsCollector->collectQuoteTotals($cart);
-        $discount_amount = $cartTotals->getDiscountAmount();
+        $discount_amount = $address->getDiscountAmount();
 
         return array_merge(
             $cart->getData(),

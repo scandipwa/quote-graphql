@@ -86,8 +86,7 @@ class RemoveCoupon extends CartResolver
             throw new CartCouponException(__("Cart does not contain products"));
         }
 
-        $cartId = $cart->getId();
-        $this->couponManagement->remove($cartId);
+        $this->couponManagement->remove($cart->getId());
 
         return [];
     }
