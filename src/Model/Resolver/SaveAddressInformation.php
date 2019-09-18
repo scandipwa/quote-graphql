@@ -144,7 +144,9 @@ class SaveAddressInformation implements ResolverInterface {
             ),
             'totals' => array_merge(
                 $rawTotals->getData(),
-                [ 'items' => array_map(function ($item) {
+                [
+                    'items_qty' => $rawTotals->getItemsQty(),
+                    'items' => array_map(function ($item) {
                     /** @var TotalsItemInterface $item */
                     return [
                         TotalsItemInterface::KEY_ITEM_ID => $item->getItemId(),
