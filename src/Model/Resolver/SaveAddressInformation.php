@@ -84,8 +84,8 @@ class SaveAddressInformation implements ResolverInterface
      * @param ResolveInfo $info
      * @param array|null $value
      * @param array|null $args
-     * @return mixed|Value
      * @throws \Exception
+     * @return mixed|Value
      */
     public function resolve(
         Field $field,
