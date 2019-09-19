@@ -31,6 +31,8 @@ use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
  */
 class GetPaymentInformation extends CartResolver
 {
+    use CheckoutPaymentTrait;
+
     /**
      * @var PaymentInformationManagementInterface
      */
@@ -74,7 +76,7 @@ class GetPaymentInformation extends CartResolver
     {
         $cartId = $this->getCartId($args);
 
-        $paymentInformation = isset($args['guestCartId'])
+        $paymentInformation = $this->isGuest($args)
             ? $this->guestPaymentInformationManagement->getPaymentInformation($cartId)
             : $this->paymentInformationManagement->getPaymentInformation($cartId);
 

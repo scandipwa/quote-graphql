@@ -129,7 +129,6 @@ type PaymentTotals implements TotalsObject {
 }
 
 interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\TotalsObject") {
-    items_qty: Float
     grand_total: Float
     base_grand_total: Float
     subtotal: Float
@@ -153,6 +152,7 @@ interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\R
     base_currency_code: String
     quote_currency_code: String
     items: [TotalsItem]
+    items_qty: Float
 }
 
 type TotalsItem {

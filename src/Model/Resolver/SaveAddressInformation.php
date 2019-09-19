@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
+use Magento\Checkout\Api\Data\PaymentDetailsInterface;
 use Magento\Checkout\Api\Data\ShippingInformationInterface;
 use Magento\Checkout\Api\Data\ShippingInformationInterfaceFactory;
 use Magento\Checkout\Api\GuestShippingInformationManagementInterface;
@@ -25,6 +26,7 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Checkout\Model\ShippingInformationManagement;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
+use Magento\Quote\Api\Data\AddressInterfaceFactory;
 
 /**
  * Class SaveAddressInformation
@@ -32,6 +34,8 @@ use Magento\Quote\Model\Webapi\ParamOverriderCartId;
  */
 class SaveAddressInformation implements ResolverInterface
 {
+    use CheckoutPaymentTrait;
+
     /**
      * @var ShippingInformationManagement
      */
@@ -92,7 +96,6 @@ class SaveAddressInformation implements ResolverInterface
     )
     {
         $requestAddressInformation = $args['addressInformation'];
-
         [
             ShippingInformationInterface::SHIPPING_ADDRESS => $shippingAddress,
             ShippingInformationInterface::BILLING_ADDRESS => $billingAddress,
@@ -112,23 +115,17 @@ class SaveAddressInformation implements ResolverInterface
             ]
         ]);
 
-        if (isset($args['guestCartId'])) {
-            // At this point we assume this is guest cart
-            return $this->requestPaymentMethods($addressInformation, $args['guestCartId']);
-        }
-
-        return $this->requestPaymentMethods($addressInformation);
+        $paymentInformation = $this->getPaymentInformation($addressInformation, $args['guestCartId']);
+        return $this->CreatePaymentDetails($paymentInformation);
     }
 
-    protected function requestPaymentMethods($addressInformation, $guestCartId = null): array
+    private function getPaymentInformation(ShippingInformationInterface $addressInformation, string $guestCartId = null): PaymentDetailsInterface
     {
-        $paymentInformation = $guestCartId
+        return $guestCartId
             ? $this->guestShippingInformationManagement->saveAddressInformation($guestCartId, $addressInformation)
             : $this->shippingInformationManagement->saveAddressInformation(
                 $this->overriderCartId->getOverriddenValue(),
                 $addressInformation
             );
-
-        return $this->CreatePaymentDetails($paymentInformation);
     }
 }
