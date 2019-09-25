@@ -115,14 +115,14 @@ class SaveAddressInformation implements ResolverInterface
             ]
         ]);
 
-        $paymentInformation = $this->getPaymentInformation($addressInformation, $args['guestCartId']);
+        $paymentInformation = $this->getPaymentInformation($addressInformation, $args);
         return $this->CreatePaymentDetails($paymentInformation);
     }
 
-    private function getPaymentInformation(ShippingInformationInterface $addressInformation, string $guestCartId = null): PaymentDetailsInterface
+    private function getPaymentInformation(ShippingInformationInterface $addressInformation, array $args): PaymentDetailsInterface
     {
-        return $guestCartId
-            ? $this->guestShippingInformationManagement->saveAddressInformation($guestCartId, $addressInformation)
+        return array_key_exists('guestCartId')
+            ? $this->guestShippingInformationManagement->saveAddressInformation($args['guestCartId'], $addressInformation)
             : $this->shippingInformationManagement->saveAddressInformation(
                 $this->overriderCartId->getOverriddenValue(),
                 $addressInformation
