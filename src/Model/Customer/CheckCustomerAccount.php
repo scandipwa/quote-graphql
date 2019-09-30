@@ -102,7 +102,7 @@ class CheckCustomerAccount
      */
     private function isCustomerGuest(?int $customerId, ?int $customerType): bool
     {
-        if (is_null($customerId) || is_null($customerType)) {
+        if ($customerId === null || $customerType === null) {
             return true;
         }
         return (int)$customerId === 0 || (int)$customerType === UserContextInterface::USER_TYPE_GUEST;
