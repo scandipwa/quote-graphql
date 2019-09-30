@@ -23,6 +23,8 @@ type Mutation {
 
 type Query {
     getCartForCustomer(guestCartId: String): QuoteData @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetCartForCustomer")
+    getOrderList: OrderList @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\OrderListResolver") @doc(description: "The Sales Order query returns information about a Sales order")
+    getOrderById(id: Int): Order @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ExpandedOrderResolver") @doc(description: "The Sales Order query returns information about a Sales order")
 }
 
 input CartItemInput {
@@ -208,4 +210,93 @@ type ShippingMethod {
     price_excl_tax: Float
     price_incl_tax: Float
     available: Boolean
+}
+
+type OrderList {
+    items: [Order]
+}
+
+type BaseOrderInfo {
+    id: Int
+    total_qty_ordered: Int
+    increment_id: String
+    created_at: String
+    status: String
+    status_label: String
+    grand_total: Float
+    sub_total: Float
+}
+
+type Order {
+    base_order_info: BaseOrderInfo
+    payment_info: PaymentInfo
+    shipping_info: ShippingInfo
+    order_products: [ProductInterface] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ProductResolver")
+}
+
+type PaymentInfo {
+    method: String
+    cc_owner: String
+    cc_last_4: String
+    cc_type: String
+    additional_information: AdditionalCustomerInfo
+}
+
+type AdditionalCustomerInfo {
+    bank: String
+    method_title: String
+    credit_type: String
+    month: Int
+    customer_info: CreditCustomerInfo
+}
+
+type CreditCustomerInfo {
+    first_name: String
+    last_name: String
+    iin_number: String
+    middle_name: String
+    phone: String
+}
+
+type ShippingInfo {
+    shipping_method: String
+    shipping_address: OrderCustomerAddress
+    shipping_description: String
+    shipping_amount: Float
+    tracking_numbers: [String]
+}
+
+type OrderCustomerAddress {
+    city: String
+    company: String
+    country_id: String
+    customer_id: Int
+    firstname: String
+    id: Int
+    lastname: String
+    middlename: String
+    prefix: String
+    region: String
+    street: String
+    telephone: String
+    district: String
+    house_number: String
+    apartment_number: String
+    postomat_code: String
+    store_pickup_code: String
+    post_office_code: String
+    is_b2b: String
+    postcode: String
+    organizationname: String
+    organizationbin: String
+    organizationaddress: String
+    organizationiic: String
+    organizationbik: String
+}
+
+interface ProductInterface {
+    qty: Int
+    row_total: Float
+    original_price: Float
+    license_key: String
 }
