@@ -68,10 +68,11 @@ class CheckCustomerAccount
      * @throws GraphQlNoSuchEntityException
      * @throws GraphQlAuthenticationException
      */
-    public function execute(?int $customerId, ?int $customerType): void
+    public function execute(?int $customerId, ?int $customerType): bool
     {
         if ($this->isCustomerGuest($customerId, $customerType)) {
             throw new GraphQlAuthorizationException(__('The current customer isn\'t authorized.'));
+            return false;
         }
 
         try {
@@ -81,16 +82,21 @@ class CheckCustomerAccount
                 __('Customer with id "%customer_id" does not exist.', ['customer_id' => $customerId]),
                 $e
             );
+            return false;
         }
 
         if ($this->authentication->isLocked($customerId)) {
             throw new GraphQlAuthenticationException(__('The account is locked.'));
+            return false;
         }
 
         $confirmationStatus = $this->accountManagement->getConfirmationStatus($customerId);
         if ($confirmationStatus === AccountManagementInterface::ACCOUNT_CONFIRMATION_REQUIRED) {
             throw new GraphQlAuthenticationException(__("This account isn't confirmed. Verify and try again."));
+            return false;
         }
+
+        return true;
     }
 
     /**
@@ -105,6 +111,6 @@ class CheckCustomerAccount
         if ($customerId === null || $customerType === null) {
             return true;
         }
-        return (int)$customerId === 0 || (int)$customerType === UserContextInterface::USER_TYPE_GUEST;
+        return $customerId == 0 || $customerType == UserContextInterface::USER_TYPE_GUEST;
     }
 }

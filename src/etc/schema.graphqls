@@ -24,7 +24,7 @@ type Mutation {
 type Query {
     getCartForCustomer(guestCartId: String): QuoteData @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetCartForCustomer")
     getOrderList: OrderList @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\OrderListResolver") @doc(description: "The Sales Order query returns information about a Sales order")
-    getOrderById(id: Int): Order @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ExpandedOrderResolver") @doc(description: "The Sales Order query returns information about a Sales order")
+    getOrderById(id: Int!): Order @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ExpandedOrderResolver") @doc(description: "The Sales Order query returns information about a Sales order")
 }
 
 input CartItemInput {

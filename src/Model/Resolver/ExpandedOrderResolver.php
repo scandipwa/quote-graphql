@@ -42,7 +42,7 @@ class ExpandedOrderResolver implements ResolverInterface
     /**
      * @var OrderRepository
      */
-    protected $orderRepository;
+    private $orderRepository;
 
     /**
      * @param CollectionFactoryInterface $collectionFactory
@@ -69,10 +69,6 @@ class ExpandedOrderResolver implements ResolverInterface
         array $value = null,
         array $args = null
     ) {
-        if (!isset($args['id'])) {
-            throw new GraphQlInputException(__('Please specify valid order ID.'));
-        }
-
         $itemsData = [];
         $trackNumbers = [];
 
@@ -86,8 +82,8 @@ class ExpandedOrderResolver implements ResolverInterface
             throw new GraphQlNoSuchEntityException(__('Customer ID is invalid.'));
         }
 
-        foreach ($order->getAllVisibleItems() as $_item) {
-            $itemsData[] = $_item;
+        foreach ($order->getAllVisibleItems() as $item) {
+            $itemsData[] = $item;
         }
 
         $tracksCollection = $order->getTracksCollection();
