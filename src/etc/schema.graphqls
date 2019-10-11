@@ -17,10 +17,17 @@ type Mutation {
     savePaymentInformationAndPlaceOrder(paymentInformation: PaymentInformation!, guestCartId: String): OrderIdObject @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SavePaymentInformationAndPlaceOrder")
     saveCartItem(cartItem: CartItemInput!, guestCartId: String): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveCartItem")
     removeCartItem(guestCartId: String, item_id: Int!): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCartItem")
+    s_setPaymentMethodOnCart(input: S_SetPaymentMethodOnCartInput!): SetPaymentMethodOnCartOutput @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SetPaymentMethodOnCart")
+    s_placeOrder(guestCartId: String): PlaceOrderOutput @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\PlaceOrder")
 }
 
 type Query {
     getCartForCustomer(guestCartId: String): QuoteData @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetCartForCustomer")
+}
+
+input S_SetPaymentMethodOnCartInput {
+    guest_cart_id: String
+    payment_method: PaymentMethodInput!
 }
 
 input CartItemInput {
