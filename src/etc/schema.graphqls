@@ -19,6 +19,8 @@ type Mutation {
     removeCartItem(guestCartId: String, item_id: Int!): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCartItem")
     s_setPaymentMethodOnCart(input: S_SetPaymentMethodOnCartInput!): SetPaymentMethodOnCartOutput @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SetPaymentMethodOnCart")
     s_placeOrder(guestCartId: String): PlaceOrderOutput @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\PlaceOrder")
+    applyCoupon(guestCartId: String, coupon_code: String!): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ApplyCoupon")
+    removeCoupon(guestCartId: String): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCoupon")
 }
 
 type Query {
@@ -31,7 +33,8 @@ input S_SetPaymentMethodOnCartInput {
 }
 
 input CartItemInput {
-    sku: String!
+    id: CartItemId
+    sku: String
     qty: Int!
     quote_id: String
     item_id: Int
@@ -39,9 +42,13 @@ input CartItemInput {
     product_option: ProductOptionInput
 }
 
+input CartItemId {
+    sku: String,
+    item_id: Int
+}
+
 input ProductOptionInput {
     extension_attributes: ExtensionsAttributeInput
-
 }
 
 input ExtensionsAttributeInput {
@@ -108,6 +115,7 @@ type QuoteData implements TotalsObject  {
     store_id: Int
     customer_tax_class_id: Int
     items_qty: Float
+    coupon_code: String
 }
 
 type OrderIdObject {

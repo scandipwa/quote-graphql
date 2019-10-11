@@ -27,23 +27,8 @@ use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 
-class GetCartForCustomer implements ResolverInterface
+class GetCartForCustomer extends CartResolver
 {
-    /**
-     * @var QuoteManagement
-     */
-    protected $quoteManagement;
-
-    /**
-     * @var ParamOverriderCustomerId
-     */
-    protected $overriderCustomerId;
-
-    /**
-     * @var GuestCartRepositoryInterface
-     */
-    protected $guestCartRepository;
-
     /**
      * @var Configurable
      */
@@ -68,11 +53,10 @@ class GetCartForCustomer implements ResolverInterface
         GuestCartRepositoryInterface $guestCartRepository,
         Configurable $configurable,
         ProductFactory $productFactory
+
     )
     {
-        $this->quoteManagement = $quoteManagement;
-        $this->overriderCustomerId = $overriderCustomerId;
-        $this->guestCartRepository = $guestCartRepository;
+        parent::__construct($guestCartRepository, $overriderCustomerId, $quoteManagement);
         $this->configurable = $configurable;
         $this->productFactory = $productFactory;
     }
@@ -80,11 +64,11 @@ class GetCartForCustomer implements ResolverInterface
     /**
      * Fetches the data from persistence models and format it according to the GraphQL schema.
      *
-     * @param Field            $field
+     * @param Field $field
      * @param ContextInterface $context
-     * @param ResolveInfo      $info
-     * @param array|null       $value
-     * @param array|null       $args
+     * @param ResolveInfo $info
+     * @param array|null $value
+     * @param array|null $args
      * @return Value|\Magento\Quote\Api\Data\CartInterface|mixed
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
@@ -94,16 +78,9 @@ class GetCartForCustomer implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    ) {
-        if (isset($args['guestCartId'])) {
-            // At this point we assume this is guest cart
-            $cart = $this->guestCartRepository->get($args['guestCartId']);
-        } else {
-            // at this point we assume it is mine cart
-            $cart = $this->quoteManagement->getCartForCustomer(
-                $this->overriderCustomerId->getOverriddenValue()
-            );
-        }
+    )
+    {
+        $cart = $this->getCart($args);
 
         $itemsData = [];
 
@@ -134,9 +111,17 @@ class GetCartForCustomer implements ResolverInterface
             }
         }
 
+        $address = $cart->isVirtual() ? $cart->getBillingAddress() : $cart->getShippingAddress();
+        $tax_amount = $address->getTaxAmount();
+        $discount_amount = $address->getDiscountAmount();
+
         return array_merge(
             $cart->getData(),
-            ['items' => $itemsData]
+            [
+                'items' => $itemsData,
+                'tax_amount' => $tax_amount,
+                'discount_amount' => $discount_amount
+            ]
         );
     }
 }

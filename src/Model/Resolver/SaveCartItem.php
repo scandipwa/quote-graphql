@@ -18,13 +18,17 @@ namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Exception;
 use Magento\Framework\GraphQl\Config\Element\Field;
+use Magento\Framework\GraphQl\Exception\GraphQlInputException;
+use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Framework\Phrase;
 use Magento\Quote\Api\CartItemRepositoryInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
+use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
 use Magento\Catalog\Model\ProductRepository;
 use Magento\Catalog\Model\Product;
@@ -40,67 +44,92 @@ use Magento\Catalog\Model\Product\Attribute\Repository;
 class SaveCartItem implements ResolverInterface
 {
     /**
-     * @var CartItemRepositoryInterface
-     */
-    private $cartItemRepository;
-
-    /**
      * @var QuoteIdMaskFactory
      */
     private $quoteIdMaskFactory;
-
+    
     /**
      * @var CartRepositoryInterface
      */
     private $quoteRepository;
-
+    
     /**
      * @var ParamOverriderCartId
      */
     protected $overriderCartId;
-
+    
     /**
      * @var ProductRepository
      */
     protected $productRepository;
-
+    
     /**
      * @var Repository
      */
     protected $attributeRepository;
-
+    
+    /**
+     * @var QuoteIdMask
+     */
+    protected $quoteIdMaskResource;
+    
     /**
      * SaveCartItem constructor.
-     * @param CartItemRepositoryInterface $cartItemRepository
-     * @param QuoteIdMaskFactory $quoteIdMaskFactory
+     * @param QuoteIdMaskFactory      $quoteIdMaskFactory
      * @param CartRepositoryInterface $quoteRepository
-     * @param ParamOverriderCartId $overriderCartId
-     * @param ProductRepository $productRepository
-     * @param Repository $attributeRepository
+     * @param ParamOverriderCartId    $overriderCartId
+     * @param ProductRepository       $productRepository
+     * @param Repository              $attributeRepository
+     * @param QuoteIdMask             $quoteIdMaskResource
      */
     public function __construct(
-        CartItemRepositoryInterface $cartItemRepository,
         QuoteIdMaskFactory $quoteIdMaskFactory,
         CartRepositoryInterface $quoteRepository,
         ParamOverriderCartId $overriderCartId,
         ProductRepository $productRepository,
-        Repository $attributeRepository
-    ) {
-        $this->cartItemRepository = $cartItemRepository;
+        Repository $attributeRepository,
+        QuoteIdMask $quoteIdMaskResource
+    )
+    {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteRepository = $quoteRepository;
         $this->overriderCartId = $overriderCartId;
         $this->productRepository = $productRepository;
         $this->attributeRepository = $attributeRepository;
+        $this->quoteIdMaskResource = $quoteIdMaskResource;
     }
-
-    private function makeAddRequest(Product $product, array $options)
+    
+    /**
+     * @param array $options
+     * @return array
+     */
+    private function prepareOptions(array $options): array
     {
+        if (isset ($options['product_option']['extension_attributes']['configurable_item_options'])) {
+            $configurableOptions = &$options['product_option']['extension_attributes']['configurable_item_options'];
+            $stringifiedOptionValues = array_map(function ($item) {
+                $item['option_value'] = (string)$item['option_value'];
+                return $item;
+            }, $configurableOptions);
+            $configurableOptions = $stringifiedOptionValues;
+        }
+        
+        return $options;
+    }
+    
+    /**
+     * @param Product $product
+     * @param array   $options
+     * @return DataObject
+     */
+    private function prepareAddItem(Product $product, array $options): DataObject
+    {
+        $options = $this->prepareOptions($options);
         $data = [
             'product' => $product->getEntityId(),
             'qty' => $options['qty']
         ];
-
+        
         switch ($product->getTypeId()) {
             case Configurable::TYPE_CODE:
                 $data = $this->setConfigurableRequestOptions($options, $data);
@@ -109,50 +138,72 @@ class SaveCartItem implements ResolverInterface
                 $data = $this->setBundleRequestOptions($product, $data);
                 break;
         }
-
+        
         $request = new DataObject();
         $request->setData($data);
-
+        
         return $request;
     }
-
-    private function setConfigurableRequestOptions(array $options, array $data)
+    
+    /**
+     * @param array $options
+     * @param array $data
+     * @return array
+     */
+    private function setConfigurableRequestOptions(array $options, array $data): array
     {
-        $configurableOptions = $options["product_option"]["extension_attributes"]["configurable_item_options"] ?? [];
+        $configurableOptions = $options['product_option']['extension_attributes']['configurable_item_options'] ?? [];
         $superAttributes = [];
-
+        
         foreach ($configurableOptions as $option) {
             $superAttributes[$option['option_id']] = $option['option_value'];
         }
-
+        
         $data['super_attribute'] = $superAttributes;
         return $data;
     }
-
-    private function setBundleRequestOptions(Product $product, array $data)
+    
+    /**
+     * @param Product $product
+     * @param array   $data
+     * @return array
+     */
+    private function setBundleRequestOptions(Product $product, array $data): array
     {
         /** @var Type $typedProduct */
         $typedProduct = $product->getTypeInstance();
-
+        
         $selectionCollection = $typedProduct->getSelectionsCollection($typedProduct->getOptionsIds($product), $product);
-
+        
         $options = [];
         foreach ($selectionCollection as $proSelection) {
             $options[$proSelection->getOptionId()] = $proSelection->getSelectionId();
         }
-
+        
         $data['bundle_option'] = $options;
         return $data;
     }
-
+    
+    /**
+     * @param string $guestCardId
+     * @return string
+     */
+    protected function getGuestQuoteId(string $guestCardId): string
+    {
+        $quoteIdMask = $this->quoteIdMaskFactory->create();
+        $this->quoteIdMaskResource->load($quoteIdMask, $guestCardId, 'masked_id');
+        
+        return $quoteIdMask->getQuoteId();
+    }
+    
     /**
      * Fetches the data from persistence models and format it according to the GraphQL schema.
      *
-     * @param Field $field
-     * @param ContextInterface                                $context
-     * @param ResolveInfo                                     $info
-     * @param array|null                                      $value
-     * @param array|null                                      $args
+     * @param Field            $field
+     * @param ContextInterface $context
+     * @param ResolveInfo      $info
+     * @param array|null       $value
+     * @param array|null       $args
      * @return mixed|Value
      * @throws Exception
      */
@@ -165,33 +216,110 @@ class SaveCartItem implements ResolverInterface
     )
     {
         $requestCartItem = $args['cartItem'];
-
-        $isGuestCartItemRequest = isset($args['guestCartId']);
-
-        $requestCartItem['quote_id'] = $isGuestCartItemRequest
-            ? $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id')->getQuoteId()
+        if (!$this->validateCartItem($requestCartItem)) {
+            throw new GraphQlInputException(new Phrase('Cart item ID or product SKU must be passed'));
+        }
+        $quoteId = isset($args['guestCartId'])
+            ? $this->getGuestQuoteId($args['guestCartId'])
             : $this->overriderCartId->getOverriddenValue();
-
-        if (array_key_exists('item_id', $requestCartItem)) {
-            $quote = $this->quoteRepository->getActive($requestCartItem['quote_id']);
-            $cartItem = $quote->getItemById($requestCartItem['item_id']);
-            $cartItem->setQty($requestCartItem['qty']);
-            $this->cartItemRepository->save($cartItem);
+        $quote = $this->quoteRepository->getActive($quoteId);
+        ['qty' => $qty] = $requestCartItem;
+        
+        $itemId = $this->getItemId($requestCartItem);
+        if ($itemId) {
+            $cartItem = $quote->getItemById($itemId);
+            $cartItem->setQty($qty);
+            $this->quoteRepository->save($quote);
         } else {
-            $quote = $this->quoteRepository->getActive($requestCartItem['quote_id']);
-            $product = $this->productRepository->get($requestCartItem['sku']);
-            $quote->addProduct($product, $this->makeAddRequest(
+            $sku = $this->getSku($requestCartItem);
+            $product = $this->productRepository->get($sku);
+            if (!$product) {
+                throw new GraphQlNoSuchEntityException(new Phrase('Product could not be loaded'));
+            }
+            $newQuoteItem = $this->buildQuoteItem($sku, $qty, (int)$quoteId,
+                $requestCartItem['product_option'] ?? []);
+            
+            $quote->addProduct($product, $this->prepareAddItem(
                 $product,
-                $requestCartItem
+                $newQuoteItem
             ));
             $this->quoteRepository->save($quote);
-
-            // Related to bug: https://github.com/magento/magengto2/issues/2991
-            $quote = $this->quoteRepository->getActive($requestCartItem['quote_id']);
+            
+            // Related to bug: https://github.com/magento/magento2/issues/2991
+            $quote = $this->quoteRepository->getActive($quoteId);
             $quote->setTotalsCollectedFlag(false)->collectTotals();
             $this->quoteRepository->save($quote);
         }
-
+        
         return [];
+    }
+    
+    /**
+     * @param string $sku
+     * @param int    $qty
+     * @param int    $quoteId
+     * @param array  $options
+     * @return array
+     */
+    protected function buildQuoteItem(string $sku, int $qty, int $quoteId, array $options = []): array
+    {
+        return [
+            'qty' => $qty,
+            'sku' => $sku,
+            'quote_id' => $quoteId,
+            'product_option' => $options
+        ];
+    }
+    
+    /**
+     * @param array $cartItem
+     * @return bool
+     */
+    private function isIdStructUsed(array $cartItem): bool
+    {
+        return array_key_exists('id', $cartItem) && is_array($cartItem['id']);
+    }
+    
+    /**
+     * @param array $cartItem
+     * @return int|null
+     */
+    protected function getItemId(array $cartItem): ?int
+    {
+        if (isset($cartItem['item_id'])) {
+            return $cartItem['item_id'];
+        }
+        
+        if ($this->isIdStructUsed($cartItem)) {
+            return $this->getItemId($cartItem['id']);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * @param array $cartItem
+     * @return string|null
+     */
+    protected function getSku(array $cartItem): ?string
+    {
+        if (isset($cartItem['sku'])) {
+            return $cartItem['sku'];
+        }
+        
+        if ($this->isIdStructUsed($cartItem)) {
+            return $this->getSku($cartItem['id']);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * @param array $cartItem
+     * @return bool
+     */
+    protected function validateCartItem(array $cartItem): bool
+    {
+        return isset($cartItem['item_id']) || isset($cartItem['sku']) || isset($cartItem['id']);
     }
 }

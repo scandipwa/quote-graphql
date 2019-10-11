@@ -8,12 +8,14 @@ All endpoints here should accept the same data as the API does. For an api refer
 
 > **IMPORTANT NOTE**: every following mutation and query work without specifying the `quote_id` param (or `quoteId`). If none quote id is specified the resolver will attempt to load the quote id from Auth header, where auth token should be present. If quoteId is passed, it will treat it as a guest request, so the `quote_id` should be encoded.
 
+> **IMPORTANT NOTE**: this endpoint is an alternative for [Magento 2 GraphQL Quote endpoint](https://devdocs.magento.com/guides/v2.3/graphql/reference/quote.html) that is storing `quote_id` for authorized customer on server (using _state-full_ approach).
+
 ### getCartForCustomer
 
 This endpoint allows to get full cart data (items + totals).
 
 ```graphql
-query saveCartItem ($_guestCartId_0: String) {
+query GetCartForCustomer ($_guestCartId_0: String) {
     getCartForCustomer(guestCartId: $_guestCartId_0) {
         id
         tax_amount
@@ -54,10 +56,13 @@ query saveCartItem ($_guestCartId_0: String) {
 
 ### saveCartItem
 
+type `cartItem` now implements sub-type of CartItemId, that allows to reference by one of many:
+item_id or product SKU. This will become non-nullable in the future releases, when "sku" and "item_id" will be dropped. 
+
 This endpoint allows to submit items to cart following the default API payload schema. In beneath example is a simple product option addition to cart.
 
 ```graphql
-mutation saveCartItem ($_cartItem_0: CartItemInput!, $_guestCartId_0: String) {
+mutation SaveCartItem ($_cartItem_0: CartItemInput!, $_guestCartId_0: String) {
     saveCartItem(cartItem: $_cartItem_0, guestCartId: $_guestCartId_0) {
         getCartForCustomer(guestCartId: $_guestCartId_0) {
             id

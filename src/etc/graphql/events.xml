@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * ScandiPWA - Progressive Web App for Magento
+ *
+ * Copyright © Scandiweb, Inc. All rights reserved.
+ * See LICENSE for license details.
+ *
+ * @license OSL-3.0 (Open Software License ("OSL") v. 3.0)
+ * @package scandipwa/quote-graphql
+ * @link https://github.com/scandipwa/quote-graphql
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="catalog_product_get_final_price">
+        <observer name="catalogrule" instance="Magento\CatalogRule\Observer\ProcessFrontFinalPriceObserver" />
+    </event>
+    <event name="prepare_catalog_product_collection_prices">
+        <observer name="catalogrule" instance="Magento\CatalogRule\Observer\PrepareCatalogProductCollectionPricesObserver" />
+    </event>
+    <event name="sales_model_service_quote_submit_success">
+        <observer name="sendEmail" instance="Magento\Quote\Observer\SubmitObserver" />
+    </event>
+</config>
