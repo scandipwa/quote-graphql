@@ -19,6 +19,7 @@
             "email": "ilja@scandiweb.com"
         }
     ],
+    "version": "2.6.0",
     "license": [
       "OSL-3.0",
       "AFL-3.0"
