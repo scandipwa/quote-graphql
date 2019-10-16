@@ -122,7 +122,11 @@ class GetCartForCustomer extends CartResolver
                 'items' => $itemsData,
                 'tax_amount' => $tax_amount,
                 'discount_amount' => $discount_amount,
-                'is_virtual' => !!$cart->getIsVirtual()
+                /**
+                 * In interface it is PHPDocumented that it returns bool,
+                 * while in implementation it returns int.
+                 */
+                'is_virtual' => (bool)$cart->getIsVirtual()
             ]
         );
     }
