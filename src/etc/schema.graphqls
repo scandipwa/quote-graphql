@@ -22,6 +22,7 @@ type Mutation {
 }
 
 type Query {
+    getPaymentMethods(guestCartId: String): [PaymentMethod] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetPaymentMethods")
     getCartForCustomer(guestCartId: String): QuoteData @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetCartForCustomer")
     getOrderList: OrderList @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\OrderListResolver") @doc(description: "The Sales Order query returns information about a Sales order")
     getOrderById(id: Int!): Order @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ExpandedOrderResolver") @doc(description: "The Sales Order query returns information about a Sales order")
@@ -104,13 +105,10 @@ input SaveAddressInformation {
 }
 
 type QuoteData implements TotalsObject  {
-    id: Int
-    items_count: Int
-    customer_is_guest: Boolean
-    store_id: Int
-    customer_tax_class_id: Int
-    items_qty: Float
-    coupon_code: String
+    is_virtual: Boolean
+}
+
+type PaymentTotals implements TotalsObject {
 }
 
 type OrderIdObject {
@@ -127,10 +125,13 @@ type PaymentMethod {
     title: String
 }
 
-type PaymentTotals implements TotalsObject {
-}
-
 interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\TotalsObject") {
+    items_count: Int
+    customer_is_guest: Boolean
+    store_id: Int
+    customer_tax_class_id: Int
+    items_qty: Float
+    coupon_code: String
     grand_total: Float
     base_grand_total: Float
     subtotal: Float
