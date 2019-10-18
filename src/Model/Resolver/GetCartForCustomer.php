@@ -17,12 +17,14 @@ namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 use Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable;
 use Magento\Catalog\Model\ProductFactory;
 
+use Magento\Framework\Exception\NotFoundException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\CartManagementInterface;
+use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
@@ -53,7 +55,6 @@ class GetCartForCustomer extends CartResolver
         GuestCartRepositoryInterface $guestCartRepository,
         Configurable $configurable,
         ProductFactory $productFactory
-
     )
     {
         parent::__construct($guestCartRepository, $overriderCustomerId, $quoteManagement);
@@ -69,8 +70,8 @@ class GetCartForCustomer extends CartResolver
      * @param ResolveInfo $info
      * @param array|null $value
      * @param array|null $args
-     * @return Value|\Magento\Quote\Api\Data\CartInterface|mixed
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @return Value|CartInterface|mixed
+     * @throws NotFoundException
      */
     public function resolve(
         Field $field,
@@ -120,7 +121,12 @@ class GetCartForCustomer extends CartResolver
             [
                 'items' => $itemsData,
                 'tax_amount' => $tax_amount,
-                'discount_amount' => $discount_amount
+                'discount_amount' => $discount_amount,
+                /**
+                 * In interface it is PHPDocumented that it returns bool,
+                 * while in implementation it returns int.
+                 */
+                'is_virtual' => (bool)$cart->getIsVirtual()
             ]
         );
     }
