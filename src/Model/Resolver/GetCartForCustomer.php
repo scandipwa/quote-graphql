@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
+use Magento\Catalog\Model\Product;
 use Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable;
 use Magento\Catalog\Model\ProductFactory;
 
@@ -28,6 +29,9 @@ use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
+use ScandiPWA\CatalogGraphQl\Helper\Attributes;
+use ScandiPWA\CatalogGraphQl\Helper\Images;
+use ScandiPWA\CatalogGraphQl\Helper\Stocks;
 
 class GetCartForCustomer extends CartResolver
 {
@@ -42,6 +46,21 @@ class GetCartForCustomer extends CartResolver
     protected $productFactory;
 
     /**
+     * @var Attributes
+     */
+    protected $attributes;
+
+    /**
+     * @var Images
+     */
+    protected $images;
+
+    /**
+     * @var Stocks
+     */
+    protected $stocks;
+
+    /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
      * @param CartManagementInterface $quoteManagement
@@ -54,12 +73,48 @@ class GetCartForCustomer extends CartResolver
         CartManagementInterface $quoteManagement,
         GuestCartRepositoryInterface $guestCartRepository,
         Configurable $configurable,
-        ProductFactory $productFactory
-    )
-    {
-        parent::__construct($guestCartRepository, $overriderCustomerId, $quoteManagement);
+        ProductFactory $productFactory,
+        Attributes $attributes,
+        Images $images,
+        Stocks $stocks
+    ) {
+        parent::__construct(
+            $guestCartRepository,
+            $overriderCustomerId,
+            $quoteManagement
+        );
+
+        $this->attributes = $attributes;
+        $this->images = $images;
+        $this->stocks = $stocks;
         $this->configurable = $configurable;
         $this->productFactory = $productFactory;
+    }
+
+    protected function getProductData($model) {
+        $productData = ['model' => $model];
+        $id = $model->getId();
+
+        if (isset($this->images[$id])) {
+            foreach ($this->images[$id] as $imageType => $imageData) {
+                $productData[$imageType] = $imageData;
+            }
+        }
+
+        if (isset($this->attributes[$id])) {
+            $productData['attributes'] = $this->attributes[$id];
+        }
+
+        if (isset($this->stocks[$id])) {
+            foreach ($this->stocks[$id] as $stockType => $stockData) {
+                $productData[$stockType] = $stockData;
+            }
+        }
+
+        return array_merge(
+            $model->getData(),
+            $productData
+            );
     }
 
     /**
@@ -82,32 +137,31 @@ class GetCartForCustomer extends CartResolver
     )
     {
         $cart = $this->getCart($args);
-
+        $items = $cart->getItems();
         $itemsData = [];
 
-        foreach ($cart->getItems() as $item) {
+        // Prepare product data in advance
+        $products = array_map(function ($item) { return $item->getProduct(); }, $items);
+        $adjustedInfo = $info->fieldNodes[0];
+        $this->attributes = $this->attributes->getProductAttributes($products, $adjustedInfo);
+        $this->images = $this->images->getProductImages($products, $adjustedInfo);
+        $this->stocks = $this->stocks->getProductStocks($products, $adjustedInfo);
+
+        foreach ($items as $item) {
             $product = $item->getProduct();
             $parentIds = $this->configurable->getParentIdsByChild($product->getId());
+
             if (count($parentIds)) {
                 $parentProduct = $this->productFactory->create()->load(reset($parentIds));
+
                 $itemsData[] = array_merge(
                     $item->getData(),
-                    ['product' =>
-                        array_merge(
-                            $parentProduct->getData(),
-                            ['model' => $parentProduct]
-                        )
-                    ]
+                    ['product' => $this->getProductData($parentProduct)]
                 );
             } else {
                 $itemsData[] = array_merge(
                     $item->getData(),
-                    ['product' =>
-                        array_merge(
-                            $product->getData(),
-                            ['model' => $product]
-                        )
-                    ]
+                    ['product' => $this->getProductData($product)]
                 );
             }
         }
