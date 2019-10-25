@@ -86,23 +86,23 @@ class MergeCustomerAndGuestQuotes implements ObserverInterface
      */
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
-        $guestToken = $observer->getData('guest_token');
+        $guestQuoteId = $observer->getData('guest_quote_id');
         $customerToken = $observer->getData('customer_token');
 
-        $this->mergeQuotes($guestToken, $customerToken);
+        $this->mergeQuotes($guestQuoteId, $customerToken);
     }
 
     /**
      * Get guest quote by token and merge that with customer quote
      *
-     * @param string $guestQuoteToken
+     * @param string $guestQuoteId
      * @param string $customerToken
      */
-    protected function mergeQuotes(string $guestQuoteToken, string $customerToken): void
+    protected function mergeQuotes(string $guestQuoteId, string $customerToken): void
     {
         $customerId = $this->tokenFactory->create()->loadByToken($customerToken)->getCustomerId();
         $guestQuote = $this->quoteFactory->create()->load(
-            $this->getGuestQuoteIdByToken($guestQuoteToken)
+            $this->getGuestQuoteIdByToken($guestQuoteId)
         );
 
         try {
@@ -132,13 +132,13 @@ class MergeCustomerAndGuestQuotes implements ObserverInterface
     /**
      * Get guest quote id by token
      *
-     * @param string $guestQuoteToken
+     * @param string $guestQuoteId
      * @return string
      */
-    protected function getGuestQuoteIdByToken(string $guestQuoteToken): ?string
+    protected function getGuestQuoteIdByToken(string $guestQuoteId): ?string
     {
         $quoteIdMask = $this->quoteIdMaskFactory->create();
-        $this->quoteIdMaskResource->load($quoteIdMask, $guestQuoteToken, 'masked_id');
+        $this->quoteIdMaskResource->load($quoteIdMask, $guestQuoteId, 'masked_id');
 
         return $quoteIdMask->getQuoteId();
     }
