@@ -67,6 +67,9 @@ class GetCartForCustomer extends CartResolver
      * @param GuestCartRepositoryInterface $guestCartRepository
      * @param Configurable $configurable
      * @param ProductFactory $productFactory
+     * @param Attributes $attributes
+     * @param Images $images
+     * @param Stocks $stocks
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -91,7 +94,8 @@ class GetCartForCustomer extends CartResolver
         $this->productFactory = $productFactory;
     }
 
-    protected function getProductData($model) {
+    protected function getProductData($model)
+    {
         $productData = ['model' => $model];
         $id = $model->getId();
 
@@ -111,10 +115,7 @@ class GetCartForCustomer extends CartResolver
             }
         }
 
-        return array_merge(
-            $model->getData(),
-            $productData
-            );
+        return $productData + $model->getData();
     }
 
     /**
@@ -134,14 +135,16 @@ class GetCartForCustomer extends CartResolver
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    )
-    {
+    ) {
         $cart = $this->getCart($args);
         $items = $cart->getItems();
         $itemsData = [];
 
         // Prepare product data in advance
-        $products = array_map(function ($item) { return $item->getProduct(); }, $items);
+        $products = array_map(function ($item) {
+            return $item->getProduct();
+        }, $items);
+
         $adjustedInfo = $info->fieldNodes[0];
         $this->attributes = $this->attributes->getProductAttributes($products, $adjustedInfo);
         $this->images = $this->images->getProductImages($products, $adjustedInfo);
@@ -153,16 +156,9 @@ class GetCartForCustomer extends CartResolver
 
             if (count($parentIds)) {
                 $parentProduct = $this->productFactory->create()->load(reset($parentIds));
-
-                $itemsData[] = array_merge(
-                    $item->getData(),
-                    ['product' => $this->getProductData($parentProduct)]
-                );
+                $itemsData[] = ['product' => $this->getProductData($parentProduct)] + $item->getData();
             } else {
-                $itemsData[] = array_merge(
-                    $item->getData(),
-                    ['product' => $this->getProductData($product)]
-                );
+                $itemsData[] = ['product' => $this->getProductData($product)] + $item->getData();
             }
         }
 
