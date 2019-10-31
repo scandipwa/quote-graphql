@@ -36,6 +36,8 @@ use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
 use Magento\Bundle\Model\Product\Type;
 use Magento\Framework\DataObject;
 use Magento\Catalog\Model\Product\Attribute\Repository;
+use Magento\CatalogInventory\Api\StockStatusRepositoryInterface;
+use Magento\Quote\Api\Data\CartItemInterface;
 
 /**
  * Class SaveCartItem
@@ -74,6 +76,16 @@ class SaveCartItem implements ResolverInterface
     protected $quoteIdMaskResource;
     
     /**
+     * @var Configurable
+     */
+    protected $configurableType;
+
+    /**
+     * @var StockStatusRepositoryInterface
+     */
+    protected $stockStatusRepository;
+
+    /**
      * SaveCartItem constructor.
      * @param QuoteIdMaskFactory      $quoteIdMaskFactory
      * @param CartRepositoryInterface $quoteRepository
@@ -88,7 +100,9 @@ class SaveCartItem implements ResolverInterface
         ParamOverriderCartId $overriderCartId,
         ProductRepository $productRepository,
         Repository $attributeRepository,
-        QuoteIdMask $quoteIdMaskResource
+        QuoteIdMask $quoteIdMaskResource,
+        Configurable $configurableType,
+        StockStatusRepositoryInterface $stockStatusRepository
     )
     {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
@@ -97,6 +111,8 @@ class SaveCartItem implements ResolverInterface
         $this->productRepository = $productRepository;
         $this->attributeRepository = $attributeRepository;
         $this->quoteIdMaskResource = $quoteIdMaskResource;
+        $this->configurableType = $configurableType;
+        $this->stockStatusRepository = $stockStatusRepository;
     }
     
     /**
@@ -228,6 +244,8 @@ class SaveCartItem implements ResolverInterface
         $itemId = $this->getItemId($requestCartItem);
         if ($itemId) {
             $cartItem = $quote->getItemById($itemId);
+            $this->checkItemQty($cartItem, $qty);
+
             $cartItem->setQty($qty);
             $this->quoteRepository->save($quote);
         } else {
@@ -253,7 +271,24 @@ class SaveCartItem implements ResolverInterface
         
         return [];
     }
-    
+
+    protected function checkItemQty(CartItemInterface $cartItem, $qty): void
+    {
+        $product = $cartItem->getProduct();
+
+        if ($cartItem->getProductType() === Configurable::TYPE_CODE) {
+            $attributesInfo = $cartItem->getBuyRequest()->getDataByKey('super_attribute');
+            $product = $this->configurableType->getProductByAttributes($attributesInfo, $product);
+        }
+
+        $stockStatus = $this->stockStatusRepository->get($product->getId());
+        $stockItem = $stockStatus->getStockItem();
+
+        if ($qty < $stockItem->getMinSaleQty() || $qty > $stockItem->getMaxSaleQty()) {
+            throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
+        }
+    }
+
     /**
      * @param string $sku
      * @param int    $qty
