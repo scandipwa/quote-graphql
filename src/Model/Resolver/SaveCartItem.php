@@ -284,7 +284,10 @@ class SaveCartItem implements ResolverInterface
         $stockStatus = $this->stockStatusRepository->get($product->getId());
         $stockItem = $stockStatus->getStockItem();
 
-        if ($qty < $stockItem->getMinSaleQty() || $qty > $stockItem->getMaxSaleQty()) {
+        $fitsInStock = $qty <= $stockItem->getQty();
+        $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
+
+        if (!($fitsInStock && $isInMinMaxSaleRange)) {
             throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
         }
     }
