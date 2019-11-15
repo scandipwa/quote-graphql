@@ -256,13 +256,18 @@ class SaveCartItem implements ResolverInterface
             }
             $newQuoteItem = $this->buildQuoteItem($sku, $qty, (int)$quoteId,
                 $requestCartItem['product_option'] ?? []);
-            
-            $quote->addProduct($product, $this->prepareAddItem(
-                $product,
-                $newQuoteItem
-            ));
-            $this->quoteRepository->save($quote);
-            
+
+            try {
+                $quote->addProduct($product, $this->prepareAddItem(
+                    $product,
+                    $newQuoteItem
+                ));
+
+                $this->quoteRepository->save($quote);
+            } catch (\Exception $e) {
+                throw new GraphQlInputException(new Phrase($e->getMessage()));
+            }
+
             // Related to bug: https://github.com/magento/magento2/issues/2991
             $quote = $this->quoteRepository->getActive($quoteId);
             $quote->setTotalsCollectedFlag(false)->collectTotals();
