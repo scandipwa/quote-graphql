@@ -131,6 +131,9 @@ class SaveAddressInformation implements ResolverInterface {
 
         $rawTotals = $rawPaymentInformation->getTotals();
 
+        $paymentMethods = $rawPaymentInformation->getPaymentMethods();
+
+        
         return [
             'payment_methods' => array_map(
                 function ($payment) {
