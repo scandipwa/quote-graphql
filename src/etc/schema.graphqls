@@ -75,6 +75,8 @@ input PaymentMethodInput {
 
 input PaymentMethodAdditionalData {
     payment_method_nonce: String
+    cc_stripejs_token: String
+    cc_save: Boolean
 }
 
 input AddressInput {
