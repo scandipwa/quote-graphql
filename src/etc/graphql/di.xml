@@ -12,4 +12,9 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <preference for="Klarna\Kp\Model\Payment\Kp"
                 type="ScandiPWA\QuoteGraphQl\Model\Payment\Kp" />
+    <type name="Klarna\Kp\Gateway\Command\Authorize">
+        <arguments>
+            <argument name="builder" xsi:type="object">ScandiPWA\QuoteGraphQl\Model\Api\Builder\Kasper</argument>
+        </arguments>
+    </type>
 </config>
