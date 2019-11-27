@@ -22,6 +22,12 @@ class Kp extends KpSource
      */
     private $adapter;
 
+    /**
+     * @param Adapter $adapter
+     * @param Resolver $resolver
+     * @param ScopeConfigInterface $config
+     * @param \Klarna\Kp\Model\SessionInitiatorFactory $sessionInitiatorFactory
+     */
     public function __construct(
         Adapter $adapter,
         Resolver $resolver,
