@@ -11,9 +11,11 @@
 namespace ScandiPWA\QuoteGraphQl\Model\Payment;
 
 use Klarna\Kp\Model\Payment\Kp as KpSource;
+use Klarna\Kp\Model\SessionInitiatorFactory;
 use Magento\Payment\Model\Method\Adapter;
 use Magento\Framework\Locale\Resolver;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Quote\Api\Data\CartInterface;
 
 class Kp extends KpSource
 {
@@ -26,13 +28,13 @@ class Kp extends KpSource
      * @param Adapter $adapter
      * @param Resolver $resolver
      * @param ScopeConfigInterface $config
-     * @param \Klarna\Kp\Model\SessionInitiatorFactory $sessionInitiatorFactory
+     * @param SessionInitiatorFactory $sessionInitiatorFactory
      */
     public function __construct(
         Adapter $adapter,
         Resolver $resolver,
         ScopeConfigInterface $config,
-        \Klarna\Kp\Model\SessionInitiatorFactory $sessionInitiatorFactory
+        SessionInitiatorFactory $sessionInitiatorFactory
     ) {
         parent::__construct($adapter, $resolver, $config, $sessionInitiatorFactory);
         $this->adapter = $adapter;
@@ -41,7 +43,7 @@ class Kp extends KpSource
     /**
      * {@inheritDoc}
      */
-    public function isAvailable(?\Magento\Quote\Api\Data\CartInterface $quote = null)
+    public function isAvailable(?CartInterface $quote = null)
     {
         return !!$this->adapter->isAvailable($quote);
     }

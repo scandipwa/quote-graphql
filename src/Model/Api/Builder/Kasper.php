@@ -16,17 +16,22 @@ use Klarna\Core\Exception as KlarnaException;
 use Klarna\Core\Helper\ConfigHelper;
 use Klarna\Core\Helper\DataConverter;
 use Klarna\Core\Helper\KlarnaConfig;
+use Klarna\Core\Model\Api\Builder;
 use Klarna\Core\Model\Api\Exception as KlarnaApiException;
 use Klarna\Core\Model\Checkout\Orderline\Collector;
 use Klarna\Core\Model\Fpt\Rate;
 use Klarna\Kp\Api\Data\RequestInterface;
 use Klarna\Kp\Model\Api\Request;
 use Klarna\Kp\Model\Payment\Kp;
+use Magento\Customer\Model\AddressRegistry;
 use Magento\Directory\Helper\Data as DirectoryHelper;
-use Magento\Framework\DataObject;
+use Magento\Framework\DataObject\Copy;
 use Magento\Framework\DataObjectFactory;
 use Magento\Framework\Event\ManagerInterface as EventManager;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Framework\Url;
+use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Address;
 
 /**
@@ -35,7 +40,7 @@ use Magento\Quote\Model\Quote\Address;
  * @package ScandiPWA\QuoteGraphQl\Model\Api\Builder
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Kasper extends \Klarna\Core\Model\Api\Builder
+class Kasper extends Builder
 {
     /**
      * @var Request\Builder
@@ -58,9 +63,9 @@ class Kasper extends \Klarna\Core\Model\Api\Builder
      * @param ConfigHelper                                $configHelper
      * @param Rate                                        $rate
      * @param DirectoryHelper                             $directoryHelper
-     * @param \Magento\Framework\Stdlib\DateTime\DateTime $coreDate
-     * @param DataObject\Copy                             $objCopyService
-     * @param \Magento\Customer\Model\AddressRegistry     $addressRegistry
+     * @param DateTime $coreDate
+     * @param Copy                             $objCopyService
+     * @param AddressRegistry     $addressRegistry
      * @param KlarnaConfig                                $klarnaConfig
      * @param DataConverter                               $dataConverter
      * @param Request\Builder                             $requestBuilder
@@ -75,9 +80,9 @@ class Kasper extends \Klarna\Core\Model\Api\Builder
         ConfigHelper $configHelper,
         Rate $rate,
         DirectoryHelper $directoryHelper,
-        \Magento\Framework\Stdlib\DateTime\DateTime $coreDate,
-        \Magento\Framework\DataObject\Copy $objCopyService,
-        \Magento\Customer\Model\AddressRegistry $addressRegistry,
+        DateTime $coreDate,
+        Copy $objCopyService,
+        AddressRegistry $addressRegistry,
         KlarnaConfig $klarnaConfig,
         DataConverter $dataConverter,
         Request\Builder $requestBuilder,
@@ -108,8 +113,8 @@ class Kasper extends \Klarna\Core\Model\Api\Builder
      *
      * @param string $type
      * @return $this
-     * @throws \Klarna\Core\Exception
-     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws KlarnaException
+     * @throws LocalizedException
      */
     public function generateRequest($type = self::GENERATE_TYPE_CREATE)
     {
@@ -132,7 +137,7 @@ class Kasper extends \Klarna\Core\Model\Api\Builder
      * @return $this
      * @throws KlarnaApiException
      * @throws KlarnaException
-     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws LocalizedException
      */
     private function generateCreateUpdate()
     {
@@ -144,7 +149,7 @@ class Kasper extends \Klarna\Core\Model\Api\Builder
             'orderlines',
         ];
 
-        /** @var \Magento\Quote\Model\Quote $quote */
+        /** @var Quote $quote */
         $quote = $this->getObject();
         $store = $quote->getStore();
         $options = array_map('trim', array_filter($this->configHelper->getCheckoutDesignConfig($store)));
@@ -196,7 +201,7 @@ class Kasper extends \Klarna\Core\Model\Api\Builder
     }
 
     /**
-     * @param array $create
+     * @param $address
      */
     private function addBillingAddress($address)
     {
@@ -224,7 +229,7 @@ class Kasper extends \Klarna\Core\Model\Api\Builder
     }
 
     /**
-     * @param array $create
+     * @param $address
      */
     private function addShippingAddress($address)
     {
@@ -276,9 +281,9 @@ class Kasper extends \Klarna\Core\Model\Api\Builder
      * Generate place order body
      *
      * @return Kasper
-     * @throws \Klarna\Core\Exception
-     * @throws \Klarna\Core\Model\Api\Exception
-     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws KlarnaException
+     * @throws KlarnaApiException
+     * @throws LocalizedException
      */
     private function generatePlace()
     {
@@ -291,7 +296,7 @@ class Kasper extends \Klarna\Core\Model\Api\Builder
             'merchant_urls'
         ];
 
-        /** @var \Magento\Quote\Model\Quote $quote */
+        /** @var Quote $quote */
         $quote = $this->getObject();
         $store = $quote->getStore();
         $address = $quote->isVirtual() ? $quote->getBillingAddress() : $quote->getShippingAddress();
