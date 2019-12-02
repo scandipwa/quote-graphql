@@ -65,11 +65,18 @@ input ConfigurableItemOptionsInput {
 
 input PaymentInformation {
     billing_address: AddressInput!
-    paymentMethod: PaymentMethodString!
+    paymentMethod: PaymentMethodInput!
 }
 
-input PaymentMethodString {
+input PaymentMethodInput {
     method: String
+    additional_data: PaymentMethodAdditionalData
+}
+
+input PaymentMethodAdditionalData {
+    payment_method_nonce: String
+    cc_stripejs_token: String
+    cc_save: Boolean
 }
 
 input AddressInput {
