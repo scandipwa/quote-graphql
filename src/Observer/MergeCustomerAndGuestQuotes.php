@@ -10,7 +10,7 @@
  * @link    https://github.com/scandipwa/quote-graphql
  */
 
-namespace ScandiPWA\QuoteGraphQl\Model\Customer\Observer;
+namespace ScandiPWA\QuoteGraphQl\Observer;
 
 use Magento\Framework\Event\ObserverInterface;
 
@@ -23,7 +23,7 @@ use Magento\Quote\Api\CartManagementInterfaceFactory;
 
 /**
  * Class MergeCustomerAndGuestQuotes
- * @package ScandiPWA\QuoteGraphQl\Model\Customer\Observer
+ * @package ScandiPWA\QuoteGraphQl\Observer
  */
 class MergeCustomerAndGuestQuotes implements ObserverInterface
 {

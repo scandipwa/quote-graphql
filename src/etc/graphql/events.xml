@@ -22,6 +22,6 @@
         <observer name="sendEmail" instance="Magento\Quote\Observer\SubmitObserver" />
     </event>
     <event name="generate_customer_token_after">
-        <observer name="mergeCustomerGuestQuotes" instance="ScandiPWA\QuoteGraphQl\Model\Customer\Observer\MergeCustomerAndGuestQuotes" />
+        <observer name="mergeCustomerGuestQuotes" instance="ScandiPWA\QuoteGraphQl\Observer\MergeCustomerAndGuestQuotes" />
     </event>
 </config>
