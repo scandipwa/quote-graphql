@@ -56,11 +56,17 @@ input ProductOptionInput {
 
 input ExtensionsAttributeInput {
     configurable_item_options: [ConfigurableItemOptionsInput]
+    customizable_options: [CustomizableOptionsInput]
 }
 
 input ConfigurableItemOptionsInput {
     option_id: String
     option_value: Int
+}
+
+input CustomizableOptionsInput {
+    option_id: String!
+    option_value: String!
 }
 
 input PaymentInformation {

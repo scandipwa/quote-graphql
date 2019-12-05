@@ -43,6 +43,9 @@ use Magento\Catalog\Model\Product\Attribute\Repository;
  */
 class SaveCartItem implements ResolverInterface
 {
+    const SIMPLE_TYPE_CODE = "simple";
+    const VIRTUAL_TYPE_CODE = "virtual";
+
     /**
      * @var QuoteIdMaskFactory
      */
@@ -137,6 +140,10 @@ class SaveCartItem implements ResolverInterface
             case Type::TYPE_CODE:
                 $data = $this->setBundleRequestOptions($product, $data);
                 break;
+            case self::SIMPLE_TYPE_CODE:
+            case self::VIRTUAL_TYPE_CODE:
+                $this->setCustomizableOptions($product, $options, $data);
+                break;
         }
         
         $request = new DataObject();
@@ -182,6 +189,25 @@ class SaveCartItem implements ResolverInterface
         
         $data['bundle_option'] = $options;
         return $data;
+    }
+
+    /**
+     * @param Product $product
+     * @param array $options
+     * @param array $data
+     */
+    private function setCustomizableOptions(Product $product, array $options, array &$data): void
+    {
+        /**
+         * @TODO Validate if custom options data are correct using @var $product
+         */
+        $customizableOptions = $options['product_option']['extension_attributes']['customizable_options'] ?? [];
+        if (count($customizableOptions)) {
+            $data['options'] = [];
+            foreach ($customizableOptions as $customizableOption) {
+                $data['options'][$customizableOption['option_id']] = $customizableOption['option_value'];
+            }
+        }
     }
     
     /**
