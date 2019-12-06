@@ -17,6 +17,7 @@ namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 
 use Exception;
+use Magento\Catalog\Model\Product\Type as ProductType;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
@@ -25,7 +26,6 @@ use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Phrase;
-use Magento\Quote\Api\CartItemRepositoryInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask;
@@ -43,9 +43,6 @@ use Magento\Catalog\Model\Product\Attribute\Repository;
  */
 class SaveCartItem implements ResolverInterface
 {
-    const SIMPLE_TYPE_CODE = "simple";
-    const VIRTUAL_TYPE_CODE = "virtual";
-
     /**
      * @var QuoteIdMaskFactory
      */
@@ -140,8 +137,8 @@ class SaveCartItem implements ResolverInterface
             case Type::TYPE_CODE:
                 $data = $this->setBundleRequestOptions($product, $data);
                 break;
-            case self::SIMPLE_TYPE_CODE:
-            case self::VIRTUAL_TYPE_CODE:
+            case ProductType::TYPE_SIMPLE:
+            case ProductType::TYPE_VIRTUAL:
                 $this->setCustomizableOptions($product, $options, $data);
                 break;
         }
