@@ -36,6 +36,8 @@ use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
 use Magento\Bundle\Model\Product\Type;
 use Magento\Framework\DataObject;
 use Magento\Catalog\Model\Product\Attribute\Repository;
+use Magento\CatalogInventory\Api\StockStatusRepositoryInterface;
+use Magento\Quote\Api\Data\CartItemInterface;
 
 /**
  * Class SaveCartItem
@@ -74,6 +76,16 @@ class SaveCartItem implements ResolverInterface
     protected $quoteIdMaskResource;
     
     /**
+     * @var Configurable
+     */
+    protected $configurableType;
+
+    /**
+     * @var StockStatusRepositoryInterface
+     */
+    protected $stockStatusRepository;
+
+    /**
      * SaveCartItem constructor.
      * @param QuoteIdMaskFactory      $quoteIdMaskFactory
      * @param CartRepositoryInterface $quoteRepository
@@ -88,7 +100,9 @@ class SaveCartItem implements ResolverInterface
         ParamOverriderCartId $overriderCartId,
         ProductRepository $productRepository,
         Repository $attributeRepository,
-        QuoteIdMask $quoteIdMaskResource
+        QuoteIdMask $quoteIdMaskResource,
+        Configurable $configurableType,
+        StockStatusRepositoryInterface $stockStatusRepository
     )
     {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
@@ -97,6 +111,8 @@ class SaveCartItem implements ResolverInterface
         $this->productRepository = $productRepository;
         $this->attributeRepository = $attributeRepository;
         $this->quoteIdMaskResource = $quoteIdMaskResource;
+        $this->configurableType = $configurableType;
+        $this->stockStatusRepository = $stockStatusRepository;
     }
     
     /**
@@ -228,6 +244,8 @@ class SaveCartItem implements ResolverInterface
         $itemId = $this->getItemId($requestCartItem);
         if ($itemId) {
             $cartItem = $quote->getItemById($itemId);
+            $this->checkItemQty($cartItem, $qty);
+
             $cartItem->setQty($qty);
             $this->quoteRepository->save($quote);
         } else {
@@ -238,13 +256,18 @@ class SaveCartItem implements ResolverInterface
             }
             $newQuoteItem = $this->buildQuoteItem($sku, $qty, (int)$quoteId,
                 $requestCartItem['product_option'] ?? []);
-            
-            $quote->addProduct($product, $this->prepareAddItem(
-                $product,
-                $newQuoteItem
-            ));
-            $this->quoteRepository->save($quote);
-            
+
+            try {
+                $quote->addProduct($product, $this->prepareAddItem(
+                    $product,
+                    $newQuoteItem
+                ));
+
+                $this->quoteRepository->save($quote);
+            } catch (\Exception $e) {
+                throw new GraphQlInputException(new Phrase($e->getMessage()));
+            }
+
             // Related to bug: https://github.com/magento/magento2/issues/2991
             $quote = $this->quoteRepository->getActive($quoteId);
             $quote->setTotalsCollectedFlag(false)->collectTotals();
@@ -253,7 +276,27 @@ class SaveCartItem implements ResolverInterface
         
         return [];
     }
-    
+
+    protected function checkItemQty(CartItemInterface $cartItem, $qty): void
+    {
+        $product = $cartItem->getProduct();
+
+        if ($cartItem->getProductType() === Configurable::TYPE_CODE) {
+            $attributesInfo = $cartItem->getBuyRequest()->getDataByKey('super_attribute');
+            $product = $this->configurableType->getProductByAttributes($attributesInfo, $product);
+        }
+
+        $stockStatus = $this->stockStatusRepository->get($product->getId());
+        $stockItem = $stockStatus->getStockItem();
+
+        $fitsInStock = $qty <= $stockItem->getQty();
+        $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
+
+        if (!($fitsInStock && $isInMinMaxSaleRange)) {
+            throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
+        }
+    }
+
     /**
      * @param string $sku
      * @param int    $qty
