@@ -289,6 +289,9 @@ class SaveCartItem implements ResolverInterface
         $stockStatus = $this->stockStatusRepository->get($product->getId());
         $stockItem = $stockStatus->getStockItem();
 
+        // return if stock is not managed
+        if (!$stockItem->getManageStock()) return;
+        
         $fitsInStock = $qty <= $stockItem->getQty();
         $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
 
