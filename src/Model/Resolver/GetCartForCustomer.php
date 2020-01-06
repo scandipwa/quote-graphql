@@ -27,7 +27,7 @@ use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Quote\Model\Quote\Item as QuoteItem;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
-use ScandiPWA\Performance\Model\Resolver\ProductPostProcessor;
+use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 
 class GetCartForCustomer extends CartResolver
 {
@@ -42,7 +42,7 @@ class GetCartForCustomer extends CartResolver
     protected $productFactory;
 
     /**
-     * @var ProductPostProcessor
+     * @var DataPostProcessor
      */
     protected $productPostProcessor;
 
@@ -58,7 +58,7 @@ class GetCartForCustomer extends CartResolver
      * @param GuestCartRepositoryInterface $guestCartRepository
      * @param Configurable $configurable
      * @param ProductFactory $productFactory
-     * @param ProductPostProcessor $productPostProcessor
+     * @param DataPostProcessor $productPostProcessor
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -66,7 +66,7 @@ class GetCartForCustomer extends CartResolver
         GuestCartRepositoryInterface $guestCartRepository,
         Configurable $configurable,
         ProductFactory $productFactory,
-        ProductPostProcessor $productPostProcessor
+        DataPostProcessor $productPostProcessor
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -88,7 +88,9 @@ class GetCartForCustomer extends CartResolver
         QuoteItem $item,
         Product $product
     ) {
-        return $item->getData() + ['product' => $this->productsData[$product->getId()]];
+        return [
+            'product' => $this->productsData[$product->getId()]
+        ] + $item->getData();
     }
 
     /**
@@ -144,14 +146,13 @@ class GetCartForCustomer extends CartResolver
         $tax_amount = $address->getTaxAmount();
         $discount_amount = $address->getDiscountAmount();
 
-        return $cart->getData() +
-            [
+        return [
                 'items' => $itemsData,
                 'tax_amount' => $tax_amount,
                 'discount_amount' => $discount_amount,
                 // In interface it is PHPDocumented that it returns bool,
                 // while in implementation it returns int.
                 'is_virtual' => (bool) $cart->getIsVirtual()
-            ];
+            ] + $cart->getData();
     }
 }

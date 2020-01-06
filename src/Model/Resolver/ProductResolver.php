@@ -14,47 +14,107 @@ declare(strict_types=1);
 
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
+use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Catalog\Model\ProductRepository;
+use Magento\Sales\Model\Order\Item;
+use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
+use ScandiPWA\Performance\Model\Resolver\ResolveInfoFieldsTrait;
+use ScandiPWA\CatalogGraphQl\Model\Resolver\Products\DataProvider\Product;
 
 /**
  * Retrieves the Product list in orders
  */
 class ProductResolver implements ResolverInterface
 {
+    use ResolveInfoFieldsTrait;
+
     /**
      * @var ProductRepository
      */
     protected $productRepository;
 
     /**
+     * @var Product
+     */
+    protected $productDataProvider;
+
+    /**
+     * @var SearchCriteriaBuilder
+     */
+    protected $searchCriteriaBuilder;
+
+    /**
+     * @var DataPostProcessor
+     */
+    protected $postProcessor;
+
+    /**
+     * ProductResolver constructor.
      * @param ProductRepository $productRepository
+     * @param Product $productDataProvider
+     * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param DataPostProcessor $postProcessor
      */
     public function __construct(
-        ProductRepository $productRepository
+        ProductRepository $productRepository,
+        Product $productDataProvider,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        DataPostProcessor $postProcessor
     ) {
         $this->productRepository = $productRepository;
+        $this->productDataProvider = $productDataProvider;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->postProcessor = $postProcessor;
     }
 
     /**
      * Get All Product Items of Order.
      * @inheritdoc
      */
-    public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
-    {
+    public function resolve(
+        Field $field,
+        $context,
+        ResolveInfo $info,
+        array $value = null,
+        array $args = null
+    ) {
         if (!isset($value['products'])) {
-            return null;
+            return [];
         }
 
+        $productSKUs = array_map(function ($item) {
+            return $item['sku'];
+        }, $value['products']);
+
+        $attributeCodes = $this->getFieldsFromProductInfo($info, 'order_products');
+
+        $searchCriteria = $this->searchCriteriaBuilder
+            ->addFilter('sku', $productSKUs, 'in')
+            ->create();
+
+        $products = $this->productDataProvider
+            ->getList(
+                $searchCriteria,
+                $attributeCodes,
+                false,
+                true
+            )
+            ->getItems();
+
+        $productsData = $this->postProcessor->process(
+            $products,
+            'order_products',
+            $info
+        );
+
+        $data = [];
+
         foreach ($value['products'] as $key => $item) {
-            $product = $this->productRepository->get($item['sku']);
-
-            $productData = $product->toArray();
-            $productData['model'] = $product;
-
-            $data[$key] = $productData;
+            /** @var $item Item */
+            $data[$key] = $productsData[$item->getProductId()];
             $data[$key]['qty'] = $item->getQtyOrdered();
             $data[$key]['row_total'] = $item->getBaseRowTotalInclTax();
             $data[$key]['original_price'] = $item->getBaseOriginalPrice();

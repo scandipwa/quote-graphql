@@ -19,30 +19,28 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactoryInterface;
 use ScandiPWA\QuoteGraphQl\Model\Customer\CheckCustomerAccount;
-use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
-
 use Magento\Sales\Model\OrderRepository;
 
 /**
- * Orders data reslover
+ * Orders data resolver
  */
 class ExpandedOrderResolver implements ResolverInterface
 {
     /**
      * @var CollectionFactoryInterface
      */
-    private $collectionFactory;
+    protected $collectionFactory;
 
     /**
      * @var CheckCustomerAccount
      */
-    private $checkCustomerAccount;
+    protected $checkCustomerAccount;
 
     /**
      * @var OrderRepository
      */
-    private $orderRepository;
+    protected $orderRepository;
 
     /**
      * @param CollectionFactoryInterface $collectionFactory
