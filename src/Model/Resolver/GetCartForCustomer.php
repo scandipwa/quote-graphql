@@ -14,20 +14,20 @@ declare(strict_types=1);
 
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
+use Magento\Catalog\Model\Product;
 use Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable;
 use Magento\Catalog\Model\ProductFactory;
-
 use Magento\Framework\Exception\NotFoundException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
-use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
-use Magento\Quote\Model\QuoteManagement;
+use Magento\Quote\Model\Quote\Item as QuoteItem;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
+use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 
 class GetCartForCustomer extends CartResolver
 {
@@ -42,24 +42,55 @@ class GetCartForCustomer extends CartResolver
     protected $productFactory;
 
     /**
+     * @var DataPostProcessor
+     */
+    protected $productPostProcessor;
+
+    /**
+     * @var array
+     */
+    protected $productsData;
+
+    /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
      * @param CartManagementInterface $quoteManagement
      * @param GuestCartRepositoryInterface $guestCartRepository
      * @param Configurable $configurable
      * @param ProductFactory $productFactory
+     * @param DataPostProcessor $productPostProcessor
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
         CartManagementInterface $quoteManagement,
         GuestCartRepositoryInterface $guestCartRepository,
         Configurable $configurable,
-        ProductFactory $productFactory
-    )
-    {
-        parent::__construct($guestCartRepository, $overriderCustomerId, $quoteManagement);
+        ProductFactory $productFactory,
+        DataPostProcessor $productPostProcessor
+    ) {
+        parent::__construct(
+            $guestCartRepository,
+            $overriderCustomerId,
+            $quoteManagement
+        );
+
         $this->configurable = $configurable;
         $this->productFactory = $productFactory;
+        $this->productPostProcessor = $productPostProcessor;
+    }
+
+    /**
+     * @param QuoteItem $item
+     * @param Product $product
+     * @return array
+     */
+    protected function mergeQuoteItemData(
+        QuoteItem $item,
+        Product $product
+    ) {
+        return [
+            'product' => $this->productsData[$product->getId()]
+        ] + $item->getData();
     }
 
     /**
@@ -79,36 +110,35 @@ class GetCartForCustomer extends CartResolver
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    )
-    {
+    ) {
         $cart = $this->getCart($args);
-
+        $items = $cart->getItems();
         $itemsData = [];
 
-        foreach ($cart->getItems() as $item) {
-            $product = $item->getProduct();
-            $parentIds = $this->configurable->getParentIdsByChild($product->getId());
-            if (count($parentIds)) {
-                $parentProduct = $this->productFactory->create()->load(reset($parentIds));
-                $itemsData[] = array_merge(
-                    $item->getData(),
-                    ['product' =>
-                        array_merge(
-                            $parentProduct->getData(),
-                            ['model' => $parentProduct]
-                        )
-                    ]
-                );
-            } else {
-                $itemsData[] = array_merge(
-                    $item->getData(),
-                    ['product' =>
-                        array_merge(
-                            $product->getData(),
-                            ['model' => $product]
-                        )
-                    ]
-                );
+        if ($items) {
+            // Prepare product data in advance
+            $products = array_map(function ($item) {
+                return $item->getProduct();
+            }, $items);
+
+            $adjustedInfo = $info->fieldNodes[0];
+            $this->productsData = $this->productPostProcessor->process(
+                $products,
+                'items/product',
+                $adjustedInfo
+            );
+
+            foreach ($items as $item) {
+                /** @var QuoteItem $item */
+                $product = $item->getProduct();
+                $parentIds = $this->configurable->getParentIdsByChild($product->getId());
+
+                if (count($parentIds)) {
+                    $parentProduct = $this->productFactory->create()->load(reset($parentIds));
+                    $itemsData[] = $this->mergeQuoteItemData($item, $parentProduct);
+                } else {
+                    $itemsData[] = $this->mergeQuoteItemData($item, $product);
+                }
             }
         }
 
@@ -116,18 +146,13 @@ class GetCartForCustomer extends CartResolver
         $tax_amount = $address->getTaxAmount();
         $discount_amount = $address->getDiscountAmount();
 
-        return array_merge(
-            $cart->getData(),
-            [
+        return [
                 'items' => $itemsData,
                 'tax_amount' => $tax_amount,
                 'discount_amount' => $discount_amount,
-                /**
-                 * In interface it is PHPDocumented that it returns bool,
-                 * while in implementation it returns int.
-                 */
-                'is_virtual' => (bool)$cart->getIsVirtual()
-            ]
-        );
+                // In interface it is PHPDocumented that it returns bool,
+                // while in implementation it returns int.
+                'is_virtual' => (bool) $cart->getIsVirtual()
+            ] + $cart->getData();
     }
 }
