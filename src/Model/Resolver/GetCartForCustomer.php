@@ -131,14 +131,7 @@ class GetCartForCustomer extends CartResolver
             foreach ($items as $item) {
                 /** @var QuoteItem $item */
                 $product = $item->getProduct();
-                $parentIds = $this->configurable->getParentIdsByChild($product->getId());
-
-                if (count($parentIds)) {
-                    $parentProduct = $this->productFactory->create()->load(reset($parentIds));
-                    $itemsData[] = $this->mergeQuoteItemData($item, $parentProduct);
-                } else {
-                    $itemsData[] = $this->mergeQuoteItemData($item, $product);
-                }
+                $itemsData[] = $this->mergeQuoteItemData($item, $product);
             }
         }
 
