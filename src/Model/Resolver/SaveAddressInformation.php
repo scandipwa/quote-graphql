@@ -131,6 +131,10 @@ class SaveAddressInformation implements ResolverInterface {
 
         $rawTotals = $rawPaymentInformation->getTotals();
 
+        // The following crutch exists because of Magento not being able to fix an issue for four years
+        // Link to the issue: https://github.com/magento/magento2/issues/7769
+        $rawTotals->setGrandTotal($rawTotals->getTotalSegments()['grand_total']['value']);
+
         return [
             'payment_methods' => array_map(
                 function ($payment) {
