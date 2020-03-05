@@ -33,6 +33,7 @@ use Magento\Quote\Model\Webapi\ParamOverriderCartId;
 use Magento\Catalog\Model\ProductRepository;
 use Magento\Catalog\Model\Product;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
+use Magento\GiftCard\Model\Catalog\Product\Type\Giftcard;
 use Magento\Bundle\Model\Product\Type;
 use Magento\Framework\DataObject;
 use Magento\Catalog\Model\Product\Attribute\Repository;
@@ -49,32 +50,32 @@ class SaveCartItem implements ResolverInterface
      * @var QuoteIdMaskFactory
      */
     private $quoteIdMaskFactory;
-    
+
     /**
      * @var CartRepositoryInterface
      */
     private $quoteRepository;
-    
+
     /**
      * @var ParamOverriderCartId
      */
     protected $overriderCartId;
-    
+
     /**
      * @var ProductRepository
      */
     protected $productRepository;
-    
+
     /**
      * @var Repository
      */
     protected $attributeRepository;
-    
+
     /**
      * @var QuoteIdMask
      */
     protected $quoteIdMaskResource;
-    
+
     /**
      * @var Configurable
      */
@@ -114,7 +115,7 @@ class SaveCartItem implements ResolverInterface
         $this->configurableType = $configurableType;
         $this->stockStatusRepository = $stockStatusRepository;
     }
-    
+
     /**
      * @param array $options
      * @return array
@@ -129,10 +130,10 @@ class SaveCartItem implements ResolverInterface
             }, $configurableOptions);
             $configurableOptions = $stringifiedOptionValues;
         }
-        
+
         return $options;
     }
-    
+
     /**
      * @param Product $product
      * @param array   $options
@@ -145,22 +146,25 @@ class SaveCartItem implements ResolverInterface
             'product' => $product->getEntityId(),
             'qty' => $options['qty']
         ];
-        
+
         switch ($product->getTypeId()) {
             case Configurable::TYPE_CODE:
                 $data = $this->setConfigurableRequestOptions($options, $data);
+                break;
+            case Giftcard::TYPE_GIFTCARD:
+                $data = $this->setGiftCardOptions($options, $data);
                 break;
             case Type::TYPE_CODE:
                 $data = $this->setBundleRequestOptions($product, $data);
                 break;
         }
-        
+
         $request = new DataObject();
         $request->setData($data);
-        
+
         return $request;
     }
-    
+
     /**
      * @param array $options
      * @param array $data
@@ -170,15 +174,29 @@ class SaveCartItem implements ResolverInterface
     {
         $configurableOptions = $options['product_option']['extension_attributes']['configurable_item_options'] ?? [];
         $superAttributes = [];
-        
+
         foreach ($configurableOptions as $option) {
             $superAttributes[$option['option_id']] = $option['option_value'];
         }
-        
+
         $data['super_attribute'] = $superAttributes;
         return $data;
     }
-    
+
+    /**
+     * @param array $options
+     * @param array $data
+     * @return array
+     */
+    private function setGiftCardOptions(array $options, array $data): array
+    {
+        foreach ($options['giftcard_options'] as $key => $value) {
+            $data[$key] = $value;
+        }
+
+        return $data;
+    }
+
     /**
      * @param Product $product
      * @param array   $data
@@ -188,18 +206,18 @@ class SaveCartItem implements ResolverInterface
     {
         /** @var Type $typedProduct */
         $typedProduct = $product->getTypeInstance();
-        
+
         $selectionCollection = $typedProduct->getSelectionsCollection($typedProduct->getOptionsIds($product), $product);
-        
+
         $options = [];
         foreach ($selectionCollection as $proSelection) {
             $options[$proSelection->getOptionId()] = $proSelection->getSelectionId();
         }
-        
+
         $data['bundle_option'] = $options;
         return $data;
     }
-    
+
     /**
      * @param string $guestCardId
      * @return string
@@ -208,10 +226,10 @@ class SaveCartItem implements ResolverInterface
     {
         $quoteIdMask = $this->quoteIdMaskFactory->create();
         $this->quoteIdMaskResource->load($quoteIdMask, $guestCardId, 'masked_id');
-        
+
         return $quoteIdMask->getQuoteId();
     }
-    
+
     /**
      * Fetches the data from persistence models and format it according to the GraphQL schema.
      *
@@ -240,7 +258,7 @@ class SaveCartItem implements ResolverInterface
             : $this->overriderCartId->getOverriddenValue();
         $quote = $this->quoteRepository->getActive($quoteId);
         ['qty' => $qty] = $requestCartItem;
-        
+
         $itemId = $this->getItemId($requestCartItem);
         if ($itemId) {
             $cartItem = $quote->getItemById($itemId);
@@ -255,7 +273,8 @@ class SaveCartItem implements ResolverInterface
                 throw new GraphQlNoSuchEntityException(new Phrase('Product could not be loaded'));
             }
             $newQuoteItem = $this->buildQuoteItem($sku, $qty, (int)$quoteId,
-                $requestCartItem['product_option'] ?? []);
+                $requestCartItem['product_option'] ?? [],
+                $requestCartItem['giftcard_options'] ?? []);
 
             try {
                 $quote->addProduct($product, $this->prepareAddItem(
@@ -273,7 +292,7 @@ class SaveCartItem implements ResolverInterface
             $quote->setTotalsCollectedFlag(false)->collectTotals();
             $this->quoteRepository->save($quote);
         }
-        
+
         return [];
     }
 
@@ -291,7 +310,7 @@ class SaveCartItem implements ResolverInterface
 
         // return if stock is not managed
         if (!$stockItem->getManageStock()) return;
-        
+
         $fitsInStock = $qty <= $stockItem->getQty();
         $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
 
@@ -304,19 +323,27 @@ class SaveCartItem implements ResolverInterface
      * @param string $sku
      * @param int    $qty
      * @param int    $quoteId
-     * @param array  $options
+     * @param array  $productOptions
+     * @param array  $giftCardOptions
      * @return array
      */
-    protected function buildQuoteItem(string $sku, int $qty, int $quoteId, array $options = []): array
+    protected function buildQuoteItem(
+        string $sku,
+        int $qty,
+        int $quoteId,
+        array $productOptions = [],
+        array $giftCardOptions = []
+    ): array
     {
         return [
             'qty' => $qty,
             'sku' => $sku,
             'quote_id' => $quoteId,
-            'product_option' => $options
+            'product_option' => $productOptions,
+            'giftcard_options' => $giftCardOptions
         ];
     }
-    
+
     /**
      * @param array $cartItem
      * @return bool
@@ -325,7 +352,7 @@ class SaveCartItem implements ResolverInterface
     {
         return array_key_exists('id', $cartItem) && is_array($cartItem['id']);
     }
-    
+
     /**
      * @param array $cartItem
      * @return int|null
@@ -335,14 +362,14 @@ class SaveCartItem implements ResolverInterface
         if (isset($cartItem['item_id'])) {
             return $cartItem['item_id'];
         }
-        
+
         if ($this->isIdStructUsed($cartItem)) {
             return $this->getItemId($cartItem['id']);
         }
-        
+
         return null;
     }
-    
+
     /**
      * @param array $cartItem
      * @return string|null
@@ -352,14 +379,14 @@ class SaveCartItem implements ResolverInterface
         if (isset($cartItem['sku'])) {
             return $cartItem['sku'];
         }
-        
+
         if ($this->isIdStructUsed($cartItem)) {
             return $this->getSku($cartItem['id']);
         }
-        
+
         return null;
     }
-    
+
     /**
      * @param array $cartItem
      * @return bool
