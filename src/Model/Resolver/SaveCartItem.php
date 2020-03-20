@@ -258,10 +258,13 @@ class SaveCartItem implements ResolverInterface
                 $requestCartItem['product_option'] ?? []);
 
             try {
-                $quote->addProduct($product, $this->prepareAddItem(
+                $result = $quote->addProduct($product, $this->prepareAddItem(
                     $product,
                     $newQuoteItem
                 ));
+                if (is_string($result)){
+                    throw new GraphQlInputException(new Phrase($result));
+                }
 
                 $this->quoteRepository->save($quote);
             } catch (\Exception $e) {
