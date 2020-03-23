@@ -38,7 +38,7 @@ input S_SetPaymentMethodOnCartInput {
 input CartItemInput {
     id: CartItemId
     sku: String
-    qty: Int!
+    quantity: Float!
     quote_id: String
     item_id: Int
     product_type: String
@@ -69,7 +69,6 @@ input PaymentInformation {
 }
 
 input PaymentMethodInput {
-    method: String
     additional_data: PaymentMethodAdditionalData
 }
 
@@ -173,7 +172,7 @@ interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\R
 
 type TotalsItem {
     item_id: Int
-    qty: Int
+    qty: Float
     price: Float
     base_price: Float
     row_total: Float
@@ -310,7 +309,7 @@ type OrderCustomerAddress {
 }
 
 interface ProductInterface {
-    qty: Int
+    quantity: Float
     row_total: Float
     original_price: Float
     license_key: String
