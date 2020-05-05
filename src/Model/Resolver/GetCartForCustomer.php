@@ -27,6 +27,7 @@ use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Quote\Model\Quote\Item as QuoteItem;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
+use Magento\Customer\Model\Customer;
 use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 
 class GetCartForCustomer extends CartResolver
@@ -47,6 +48,11 @@ class GetCartForCustomer extends CartResolver
     protected $productPostProcessor;
 
     /**
+     * @var Customer
+     */
+    protected $customer;
+
+    /**
      * @var array
      */
     protected $productsData;
@@ -59,6 +65,7 @@ class GetCartForCustomer extends CartResolver
      * @param Configurable $configurable
      * @param ProductFactory $productFactory
      * @param DataPostProcessor $productPostProcessor
+     * @param Customer $customer
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -66,7 +73,8 @@ class GetCartForCustomer extends CartResolver
         GuestCartRepositoryInterface $guestCartRepository,
         Configurable $configurable,
         ProductFactory $productFactory,
-        DataPostProcessor $productPostProcessor
+        DataPostProcessor $productPostProcessor,
+        Customer $customer
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -77,6 +85,7 @@ class GetCartForCustomer extends CartResolver
         $this->configurable = $configurable;
         $this->productFactory = $productFactory;
         $this->productPostProcessor = $productPostProcessor;
+        $this->customer = $customer;
     }
 
     /**
@@ -99,6 +108,7 @@ class GetCartForCustomer extends CartResolver
      * @param Field $field
      * @param ContextInterface $context
      * @param ResolveInfo $info
+     * @param Customer $customer
      * @param array|null $value
      * @param array|null $args
      * @return Value|CartInterface|mixed
@@ -139,6 +149,7 @@ class GetCartForCustomer extends CartResolver
         $tax_amount = $address->getTaxAmount();
         $discount_amount = $address->getDiscountAmount();
         $subtotal_incl_tax = $cart->getSubtotal() + $tax_amount;
+
         return [
                 'items' => $itemsData,
                 'tax_amount' => $tax_amount,
@@ -146,7 +157,8 @@ class GetCartForCustomer extends CartResolver
                 'discount_amount' => $discount_amount,
                 // In interface it is PHPDocumented that it returns bool,
                 // while in implementation it returns int.
-                'is_virtual' => (bool) $cart->getIsVirtual()
+                'is_virtual' => (bool) $cart->getIsVirtual(),
+                'is_email_confirmation_required' => $this->customer->isConfirmationRequired()
             ] + $cart->getData();
     }
 }
