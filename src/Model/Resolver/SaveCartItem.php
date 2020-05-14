@@ -12,9 +12,7 @@
 
 declare(strict_types=1);
 
-
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
-
 
 use Exception;
 use Magento\Framework\GraphQl\Config\Element\Field;
@@ -87,12 +85,15 @@ class SaveCartItem implements ResolverInterface
 
     /**
      * SaveCartItem constructor.
-     * @param QuoteIdMaskFactory      $quoteIdMaskFactory
+     *
+     * @param QuoteIdMaskFactory $quoteIdMaskFactory
      * @param CartRepositoryInterface $quoteRepository
-     * @param ParamOverriderCartId    $overriderCartId
-     * @param ProductRepository       $productRepository
-     * @param Repository              $attributeRepository
-     * @param QuoteIdMask             $quoteIdMaskResource
+     * @param ParamOverriderCartId $overriderCartId
+     * @param ProductRepository $productRepository
+     * @param Repository $attributeRepository
+     * @param QuoteIdMask $quoteIdMaskResource
+     * @param Configurable $configurableType
+     * @param StockStatusRepositoryInterface $stockStatusRepository
      */
     public function __construct(
         QuoteIdMaskFactory $quoteIdMaskFactory,
@@ -103,8 +104,7 @@ class SaveCartItem implements ResolverInterface
         QuoteIdMask $quoteIdMaskResource,
         Configurable $configurableType,
         StockStatusRepositoryInterface $stockStatusRepository
-    )
-    {
+    ) {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteRepository = $quoteRepository;
         $this->overriderCartId = $overriderCartId;
@@ -302,7 +302,7 @@ class SaveCartItem implements ResolverInterface
 
     /**
      * @param string $sku
-     * @param float  $qty
+     * @param float    $qty
      * @param int    $quoteId
      * @param array  $options
      * @return array
