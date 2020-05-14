@@ -68,6 +68,7 @@ input PaymentInformation {
 }
 
 input PaymentMethodInput {
+    method: String
     additional_data: PaymentMethodAdditionalData
 }
 
