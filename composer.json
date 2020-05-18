@@ -3,7 +3,7 @@
   "description": "N/A",
   "type": "magento2-module",
   "require": {
-    "magento/magento2-base": "^2.3.2",
+    "magento/magento2-base": "^2.3.5",
     "scandipwa/performance": "^1.0"
   },
   "support": {

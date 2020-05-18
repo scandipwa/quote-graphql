@@ -14,7 +14,6 @@
 type Mutation {
     estimateShippingCosts(address: EstimateShippingCostsAddress!, guestCartId: String): [ShippingMethod] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\EstimateShippingCosts")
     saveAddressInformation(addressInformation: SaveAddressInformation!, guestCartId: String): PaymentDetails @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveAddressInformation")
-    savePaymentInformationAndPlaceOrder(paymentInformation: PaymentInformation!, guestCartId: String): OrderIdObject @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SavePaymentInformationAndPlaceOrder")
     saveCartItem(cartItem: CartItemInput!, guestCartId: String): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveCartItem")
     removeCartItem(guestCartId: String, item_id: Int!): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCartItem")
     s_setPaymentMethodOnCart(input: S_SetPaymentMethodOnCartInput!): SetPaymentMethodOnCartOutput @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SetPaymentMethodOnCart")
@@ -38,7 +37,7 @@ input S_SetPaymentMethodOnCartInput {
 input CartItemInput {
     id: CartItemId
     sku: String
-    qty: Int!
+    quantity: Float!
     quote_id: String
     item_id: Int
     product_type: String
@@ -125,10 +124,6 @@ type QuoteData implements TotalsObject  {
 type PaymentTotals implements TotalsObject {
 }
 
-type OrderIdObject {
-    orderID: String
-}
-
 type PaymentDetails {
     payment_methods: [PaymentMethod]
     totals: PaymentTotals
@@ -173,7 +168,7 @@ interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\R
 
 type TotalsItem {
     item_id: Int
-    qty: Int
+    qty: Float
     price: Float
     base_price: Float
     row_total: Float
@@ -310,7 +305,7 @@ type OrderCustomerAddress {
 }
 
 interface ProductInterface {
-    qty: Int
+    quantity: Float
     row_total: Float
     original_price: Float
     license_key: String
