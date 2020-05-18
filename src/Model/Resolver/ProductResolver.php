@@ -85,20 +85,23 @@ class ProductResolver implements ResolverInterface
             return [];
         }
 
-        $productSKUs = array_map(function ($item) {
-            return $item['sku'];
+        $productIds = array_map(function ($item) {
+            return $item['product_id'];
         }, $value['products']);
 
         $attributeCodes = $this->getFieldsFromProductInfo($info, 'order_products');
 
         $searchCriteria = $this->searchCriteriaBuilder
-            ->addFilter('sku', $productSKUs, 'in')
+            ->addFilter('entity_id', $productIds, 'in')
             ->create();
 
         $products = $this->productDataProvider
             ->getList(
                 $searchCriteria,
                 $attributeCodes,
+                false,
+                true,
+                false,
                 false,
                 true
             )
