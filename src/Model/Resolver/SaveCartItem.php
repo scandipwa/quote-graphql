@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Exception;
+use Magento\Catalog\Model\Product\Type as ProductType;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
@@ -23,7 +24,6 @@ use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Phrase;
-use Magento\Quote\Api\CartItemRepositoryInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask;
@@ -153,6 +153,10 @@ class SaveCartItem implements ResolverInterface
             case Type::TYPE_CODE:
                 $data = $this->setBundleRequestOptions($product, $data);
                 break;
+            case ProductType::TYPE_SIMPLE:
+            case ProductType::TYPE_VIRTUAL:
+                $this->setCustomizableOptions($product, $options, $data);
+                break;
         }
 
         $request = new DataObject();
@@ -176,6 +180,56 @@ class SaveCartItem implements ResolverInterface
         }
 
         $data['super_attribute'] = $superAttributes;
+        return $data;
+    }
+
+    /**
+     * @param Product $product
+     * @param array $options
+     * @param array $data
+     */
+    private function setCustomizableOptions(Product $product, array $options, array &$data): void
+    {
+        $customizableOptionsData = $options['product_option']['extension_attributes']['customizable_options'] ?? [];
+        $customizableOptions = $this->getCustomizableOptions($customizableOptionsData);
+        // Necessary for multi selections, i.e., checkboxes which have same parent option_id
+        $customizableOptionsArrayData = $options['product_option']['extension_attributes']['customizable_options_multi'] ?? [];
+        $customizableOptionsMulti = $this->getCustomizableOptions($customizableOptionsArrayData, true);
+
+        if (count($customizableOptions)) {
+            foreach ($customizableOptions as $key => $value) {
+                $data['options'][$key] = $value;
+            }
+        }
+
+        if (count($customizableOptionsMulti)) {
+            foreach ($customizableOptionsMulti as $key => $value) {
+                $data['options'][$key] = $value;
+            }
+        }
+    }
+
+    /**
+     * @param $customizableOptions
+     * @param bool $isMulti
+     * @return array
+     */
+    private function getCustomizableOptions($customizableOptions, $isMulti = false): array
+    {
+        $data = [];
+
+        if (count($customizableOptions)) {
+            if ($isMulti) {
+                foreach ($customizableOptions as $customizableOption) {
+                    $data[$customizableOption['option_id']][] = $customizableOption['option_value'];
+                }
+            } else {
+                foreach ($customizableOptions as $customizableOption) {
+                    $data[$customizableOption['option_id']] = $customizableOption['option_value'];
+                }
+            }
+        }
+
         return $data;
     }
 

@@ -55,11 +55,24 @@ input ProductOptionInput {
 
 input ExtensionsAttributeInput {
     configurable_item_options: [ConfigurableItemOptionsInput]
+    customizable_options: [CustomizableOptionsInput]
+    customizable_options_multi: [CustomizableOptionsInput]
 }
 
 input ConfigurableItemOptionsInput {
     option_id: String
     option_value: Int
+}
+
+input CustomizableOptionsInput {
+    option_id: String!
+    option_value: String
+    extension_files: [ExtensionFilesInput]
+}
+
+input ExtensionFilesInput {
+    name: String
+    encoded_file: String
 }
 
 input PaymentInformation {
