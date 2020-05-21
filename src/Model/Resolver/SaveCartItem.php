@@ -23,7 +23,6 @@ use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Phrase;
-use Magento\Quote\Api\CartItemRepositoryInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask;
@@ -87,7 +86,7 @@ class SaveCartItem implements ResolverInterface
      */
     protected $stockStatusRepository;
 
-     /**
+    /**
      * @var GetStockItemDataInterface
      */
     private $getStockItemData;
@@ -113,9 +112,6 @@ class SaveCartItem implements ResolverInterface
      * @param QuoteIdMask $quoteIdMaskResource
      * @param Configurable $configurableType
      * @param StockStatusRepositoryInterface $stockStatusRepository
-     * @param StockItemConfigurationInterface $getStockItemData
-     * @param GetReservationsQuantityInterface $getReservationsQuantity
-     * @param GetStockItemConfigurationInterface $getStockItemConfiguration
      */
     public function __construct(
         QuoteIdMaskFactory $quoteIdMaskFactory,
@@ -270,6 +266,7 @@ class SaveCartItem implements ResolverInterface
         ['quantity' => $qty] = $requestCartItem;
 
         $itemId = $this->getItemId($requestCartItem);
+
         if ($itemId) {
             $cartItem = $quote->getItemById($itemId);
             $this->checkItemQty($cartItem, $qty);
@@ -279,6 +276,7 @@ class SaveCartItem implements ResolverInterface
         } else {
             $sku = $this->getSku($requestCartItem);
             $product = $this->productRepository->get($sku);
+
             if (!$product) {
                 throw new GraphQlNoSuchEntityException(new Phrase('Product could not be loaded'));
             }
@@ -317,27 +315,35 @@ class SaveCartItem implements ResolverInterface
         $stockStatus = $this->stockStatusRepository->get($product->getId());
         $stockItem = $stockStatus->getStockItem();
 
-        // return if stock is not managed
-        if (!$stockItem->getManageStock()) return;
+        if (!$stockItem->getManageStock()) {
+            $stockId = $stockItem->getStockId();
+            $sku = $product->getSku();
 
-        $stockId = $stockItem->getStockId();
-        $sku = $product->getSku();
+            $stockItemData = $this->getStockItemData->execute($sku, $stockId);
 
-        $stockItemData = $this->getStockItemData->execute($sku, $stockId);
+            /** @var StockItemConfigurationInterface $stockItemConfiguration */
+            $stockItemConfiguration = $this->getStockItemConfiguration->execute($sku, $stockId);
 
-        /** @var StockItemConfigurationInterface $stockItemConfiguration */
-        $stockItemConfiguration = $this->getStockItemConfiguration->execute($sku, $stockId);
+            $qtyWithReservation = $stockItemData[GetStockItemDataInterface::QUANTITY] +
+                $this->getReservationsQuantity->execute($sku, $stockId);
 
-        $qtyWithReservation = $stockItemData[GetStockItemDataInterface::QUANTITY] +
-            $this->getReservationsQuantity->execute($sku, $stockId);
+            $qtyLeftInStock = $qtyWithReservation - $stockItemConfiguration->getMinQty();
 
-        $qtyLeftInStock = $qtyWithReservation - $stockItemConfiguration->getMinQty();
+            $isInStock = bccomp((string)$qtyLeftInStock, (string)$qty, 4) >= 0;
+            $isEnoughQty = (bool)$stockItemData[GetStockItemDataInterface::IS_SALABLE] && $isInStock;
 
-        $isInStock = bccomp((string)$qtyLeftInStock, (string)$qty, 4) >= 0;
-        $isEnoughQty = (bool)$stockItemData[GetStockItemDataInterface::IS_SALABLE] && $isInStock;
+            if (!$isEnoughQty) {
+                throw new GraphQlInputException(new Phrase('The requested quantity is not available'));
+            }
+        } else {
+            throw new GraphQlInputException(new Phrase('yes'));
 
-        if (!$isEnoughQty) {
-            throw new GraphQlInputException(new Phrase('The requested qty is not available'));
+            $fitsInStock = $qty <= $stockItem->getQty();
+            $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
+
+            if (!($fitsInStock && $isInMinMaxSaleRange)) {
+                throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
+            }
         }
     }
 
