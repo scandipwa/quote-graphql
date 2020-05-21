@@ -324,7 +324,7 @@ class SaveCartItem implements ResolverInterface
             /** @var StockItemConfigurationInterface $stockItemConfiguration */
             $stockItemConfiguration = $this->getStockItemConfiguration->execute($sku, $stockId);
 
-            $qtyWithReservation = $stockItemData[GetStockItemDataInterface::QUANTITY] +
+            $qtyWithReservation = $stockItemData[GetStockItemDataInterface::QTY] +
                 $this->getReservationsQuantity->execute($sku, $stockId);
 
             $qtyLeftInStock = $qtyWithReservation - $stockItemConfiguration->getMinQty();
