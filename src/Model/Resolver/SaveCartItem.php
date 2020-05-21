@@ -336,8 +336,6 @@ class SaveCartItem implements ResolverInterface
                 throw new GraphQlInputException(new Phrase('The requested quantity is not available'));
             }
         } else {
-            throw new GraphQlInputException(new Phrase('yes'));
-
             $fitsInStock = $qty <= $stockItem->getQty();
             $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
 
