@@ -67,12 +67,6 @@ input ConfigurableItemOptionsInput {
 input CustomizableOptionsInput {
     option_id: String!
     option_value: String
-    extension_files: [ExtensionFilesInput]
-}
-
-input ExtensionFilesInput {
-    name: String
-    encoded_file: String
 }
 
 input PaymentInformation {
