@@ -17,6 +17,7 @@ namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 use Magento\Catalog\Model\Product;
 use Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable;
 use Magento\Catalog\Model\ProductFactory;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NotFoundException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
@@ -26,6 +27,7 @@ use Magento\Quote\Api\CartManagementInterface;
 use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Quote\Model\Quote\Item as QuoteItem;
+use Magento\QuoteGraphQl\Model\CartItem\DataProvider\CustomizableOption;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 
@@ -52,6 +54,11 @@ class GetCartForCustomer extends CartResolver
     protected $productsData;
 
     /**
+     * @var CustomizableOption
+     */
+    private $customizableOption;
+
+    /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
      * @param CartManagementInterface $quoteManagement
@@ -59,6 +66,7 @@ class GetCartForCustomer extends CartResolver
      * @param Configurable $configurable
      * @param ProductFactory $productFactory
      * @param DataPostProcessor $productPostProcessor
+     * @param CustomizableOption $customizableOption
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -66,7 +74,8 @@ class GetCartForCustomer extends CartResolver
         GuestCartRepositoryInterface $guestCartRepository,
         Configurable $configurable,
         ProductFactory $productFactory,
-        DataPostProcessor $productPostProcessor
+        DataPostProcessor $productPostProcessor,
+        CustomizableOption $customizableOption
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -77,6 +86,7 @@ class GetCartForCustomer extends CartResolver
         $this->configurable = $configurable;
         $this->productFactory = $productFactory;
         $this->productPostProcessor = $productPostProcessor;
+        $this->customizableOption = $customizableOption;
     }
 
     /**
@@ -89,8 +99,36 @@ class GetCartForCustomer extends CartResolver
         Product $product
     ) {
         return [
-            'product' => $this->productsData[$product->getId()]
+                'product' => $this->productsData[$product->getId()],
+                'customizable_options' => $this->getCustomizableOptions($item)
         ] + $item->getData();
+    }
+
+    /**
+     * @param $item
+     * @return array
+     * @throws LocalizedException
+     */
+    private function getCustomizableOptions($item): array
+    {
+        $quoteItemOption = $item->getOptionByCode('option_ids');
+
+        if (null === $quoteItemOption) {
+            return [];
+        }
+
+        $customizableOptionsData = [];
+        $customizableOptionIds = explode(',', $quoteItemOption->getValue());
+
+        foreach ($customizableOptionIds as $customizableOptionId) {
+            $customizableOption = $this->customizableOption->getData(
+                $item,
+                (int)$customizableOptionId
+            );
+            $customizableOptionsData[] = $customizableOption;
+        }
+
+        return $customizableOptionsData;
     }
 
     /**
