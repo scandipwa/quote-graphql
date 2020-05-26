@@ -99,8 +99,8 @@ class GetCartForCustomer extends CartResolver
         Product $product
     ) {
         return [
-                'product' => $this->productsData[$product->getId()],
-                'customizable_options' => $this->getCustomizableOptions($item)
+            'product' => $this->productsData[$product->getId()],
+            'customizable_options' => $this->getCustomizableOptions($item)
         ] + $item->getData();
     }
 
