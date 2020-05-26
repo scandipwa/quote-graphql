@@ -315,33 +315,33 @@ class SaveCartItem implements ResolverInterface
         $stockStatus = $this->stockStatusRepository->get($product->getId());
         $stockItem = $stockStatus->getStockItem();
 
-        if (!$stockItem->getManageStock()) {
-            $stockId = $stockItem->getStockId();
-            $sku = $product->getSku();
-
-            $stockItemData = $this->getStockItemData->execute($sku, $stockId);
-
-            /** @var StockItemConfigurationInterface $stockItemConfiguration */
-            $stockItemConfiguration = $this->getStockItemConfiguration->execute($sku, $stockId);
-
-            $qtyWithReservation = $stockItemData[GetStockItemDataInterface::QTY] +
-                $this->getReservationsQuantity->execute($sku, $stockId);
-
-            $qtyLeftInStock = $qtyWithReservation - $stockItemConfiguration->getMinQty();
-
-            $isInStock = bccomp((string)$qtyLeftInStock, (string)$qty, 4) >= 0;
-            $isEnoughQty = (bool)$stockItemData[GetStockItemDataInterface::IS_SALABLE] && $isInStock;
-
-            if (!$isEnoughQty) {
-                throw new GraphQlInputException(new Phrase('The requested quantity is not available'));
-            }
-        } else {
+        if ($stockItem->getManageStock()) {
             $fitsInStock = $qty <= $stockItem->getQty();
             $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
 
             if (!($fitsInStock && $isInMinMaxSaleRange)) {
                 throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
             }
+        }
+
+        $stockId = $stockItem->getStockId();
+        $sku = $product->getSku();
+
+        $stockItemData = $this->getStockItemData->execute($sku, $stockId);
+
+        /** @var StockItemConfigurationInterface $stockItemConfiguration */
+        $stockItemConfiguration = $this->getStockItemConfiguration->execute($sku, $stockId);
+
+        $qtyWithReservation = $stockItemData[GetStockItemDataInterface::QUANTITY] +
+            $this->getReservationsQuantity->execute($sku, $stockId);
+
+        $qtyLeftInStock = $qtyWithReservation - $stockItemConfiguration->getMinQty();
+
+        $isInStock = bccomp((string)$qtyLeftInStock, (string)$qty, 4) >= 0;
+        $isEnoughQty = (bool)$stockItemData[GetStockItemDataInterface::IS_SALABLE] && $isInStock;
+
+        if (!$isEnoughQty) {
+            throw new GraphQlInputException(new Phrase('The requested quantity is not available'));
         }
     }
 
