@@ -219,12 +219,10 @@ class SaveCartItem implements ResolverInterface
         $data = [];
 
         if (count($customizableOptions)) {
-            if ($isMulti) {
-                foreach ($customizableOptions as $customizableOption) {
+            foreach ($customizableOptions as $customizableOption) {
+                if ($isMulti) {
                     $data[$customizableOption['option_id']][] = $customizableOption['option_value'];
-                }
-            } else {
-                foreach ($customizableOptions as $customizableOption) {
+                } else {
                     $data[$customizableOption['option_id']] = $customizableOption['option_value'];
                 }
             }
