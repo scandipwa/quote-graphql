@@ -103,7 +103,8 @@ class ProductResolver implements ResolverInterface
                 true,
                 false,
                 false,
-                true
+                true,
+                $productIds
             )
             ->getItems();
 
