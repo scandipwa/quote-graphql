@@ -55,11 +55,18 @@ input ProductOptionInput {
 
 input ExtensionsAttributeInput {
     configurable_item_options: [ConfigurableItemOptionsInput]
+    customizable_options: [CustomizableOptionsInput]
+    customizable_options_multi: [CustomizableOptionsInput]
 }
 
 input ConfigurableItemOptionsInput {
     option_id: String
     option_value: Int
+}
+
+input CustomizableOptionsInput {
+    option_id: String!
+    option_value: String
 }
 
 input PaymentInformation {
@@ -189,6 +196,7 @@ type TotalsItem {
     options: String
     name: String
     sku: String
+    customizable_options: [SelectedCustomizableOption]
     product: ProductInterface
 }
 
