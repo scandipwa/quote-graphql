@@ -16,6 +16,7 @@ namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Exception;
 use Magento\Catalog\Model\Product\Type as ProductType;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
@@ -24,6 +25,7 @@ use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Phrase;
+use Magento\InventoryConfigurationApi\Exception\SkuIsNotAssignedToStockException;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask;
@@ -36,6 +38,10 @@ use Magento\Framework\DataObject;
 use Magento\Catalog\Model\Product\Attribute\Repository;
 use Magento\CatalogInventory\Api\StockStatusRepositoryInterface;
 use Magento\Quote\Api\Data\CartItemInterface;
+use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
+use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
+use Magento\InventoryReservationsApi\Model\GetReservationsQuantityInterface;
+use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
 
 /**
  * Class SaveCartItem
@@ -84,6 +90,21 @@ class SaveCartItem implements ResolverInterface
     protected $stockStatusRepository;
 
     /**
+     * @var GetStockItemDataInterface
+     */
+    private $getStockItemData;
+
+    /**
+     * @var GetReservationsQuantityInterface
+     */
+    private $getReservationsQuantity;
+
+    /**
+     * @var GetStockItemConfigurationInterface
+     */
+    private $getStockItemConfiguration;
+
+    /**
      * SaveCartItem constructor.
      *
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
@@ -103,7 +124,10 @@ class SaveCartItem implements ResolverInterface
         Repository $attributeRepository,
         QuoteIdMask $quoteIdMaskResource,
         Configurable $configurableType,
-        StockStatusRepositoryInterface $stockStatusRepository
+        StockStatusRepositoryInterface $stockStatusRepository,
+        GetStockItemDataInterface $getStockItemData,
+        GetReservationsQuantityInterface $getReservationsQuantity,
+        GetStockItemConfigurationInterface $getStockItemConfiguration
     ) {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteRepository = $quoteRepository;
@@ -113,6 +137,9 @@ class SaveCartItem implements ResolverInterface
         $this->quoteIdMaskResource = $quoteIdMaskResource;
         $this->configurableType = $configurableType;
         $this->stockStatusRepository = $stockStatusRepository;
+        $this->getStockItemData = $getStockItemData;
+        $this->getReservationsQuantity = $getReservationsQuantity;
+        $this->getStockItemConfiguration = $getStockItemConfiguration;
     }
 
     /**
@@ -294,6 +321,7 @@ class SaveCartItem implements ResolverInterface
         ['quantity' => $qty] = $requestCartItem;
 
         $itemId = $this->getItemId($requestCartItem);
+
         if ($itemId) {
             $cartItem = $quote->getItemById($itemId);
             $this->checkItemQty($cartItem, $qty);
@@ -303,11 +331,17 @@ class SaveCartItem implements ResolverInterface
         } else {
             $sku = $this->getSku($requestCartItem);
             $product = $this->productRepository->get($sku);
+
             if (!$product) {
                 throw new GraphQlNoSuchEntityException(new Phrase('Product could not be loaded'));
             }
-            $newQuoteItem = $this->buildQuoteItem($sku, $qty, (int)$quoteId,
-                $requestCartItem['product_option'] ?? []);
+
+            $newQuoteItem = $this->buildQuoteItem(
+                $sku,
+                $qty,
+                (int) $quoteId,
+                $requestCartItem['product_option'] ?? []
+            );
 
             try {
                 $quote->addProduct($product, $this->prepareAddItem(
@@ -329,6 +363,13 @@ class SaveCartItem implements ResolverInterface
         return [];
     }
 
+    /**
+     * @param CartItemInterface $cartItem
+     * @param $qty
+     * @throws GraphQlInputException
+     * @throws LocalizedException
+     * @throws SkuIsNotAssignedToStockException
+     */
     protected function checkItemQty(CartItemInterface $cartItem, $qty): void
     {
         $product = $cartItem->getProduct();
@@ -341,14 +382,35 @@ class SaveCartItem implements ResolverInterface
         $stockStatus = $this->stockStatusRepository->get($product->getId());
         $stockItem = $stockStatus->getStockItem();
 
-        // return if stock is not managed
-        if (!$stockItem->getManageStock()) return;
+        if (!$stockItem->getManageStock()) { // just skip all checks, if stock is not managed
+            return;
+        }
 
         $fitsInStock = $qty <= $stockItem->getQty();
         $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
 
         if (!($fitsInStock && $isInMinMaxSaleRange)) {
             throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
+        }
+
+        $stockId = $stockItem->getStockId();
+        $sku = $product->getSku();
+
+        $stockItemData = $this->getStockItemData->execute($sku, $stockId);
+
+        /** @var StockItemConfigurationInterface $stockItemConfiguration */
+        $stockItemConfiguration = $this->getStockItemConfiguration->execute($sku, $stockId);
+
+        $qtyWithReservation = $stockItemData[GetStockItemDataInterface::QUANTITY] +
+            $this->getReservationsQuantity->execute($sku, $stockId);
+
+        $qtyLeftInStock = $qtyWithReservation - $stockItemConfiguration->getMinQty();
+
+        $isInStock = bccomp((string) $qtyLeftInStock, (string) $qty, 4) >= 0;
+        $isEnoughQty = (bool)$stockItemData[GetStockItemDataInterface::IS_SALABLE] && $isInStock;
+
+        if (!$isEnoughQty) {
+            throw new GraphQlInputException(new Phrase('The requested quantity is not available'));
         }
     }
 

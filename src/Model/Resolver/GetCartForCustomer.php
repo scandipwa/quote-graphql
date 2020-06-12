@@ -99,8 +99,8 @@ class GetCartForCustomer extends CartResolver
         Product $product
     ) {
         return [
-                'product' => $this->productsData[$product->getId()],
-                'customizable_options' => $this->getCustomizableOptions($item)
+            'product' => $this->productsData[$product->getId()],
+            'customizable_options' => $this->getCustomizableOptions($item)
         ] + $item->getData();
     }
 
@@ -177,6 +177,7 @@ class GetCartForCustomer extends CartResolver
         $tax_amount = $address->getTaxAmount();
         $discount_amount = $address->getDiscountAmount();
         $subtotal_incl_tax = $cart->getSubtotal() + $tax_amount;
+
         return [
                 'items' => $itemsData,
                 'tax_amount' => $tax_amount,
