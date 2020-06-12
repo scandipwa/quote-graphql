@@ -16,6 +16,7 @@ namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Exception;
 use Magento\Catalog\Model\Product\Type as ProductType;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
@@ -24,6 +25,7 @@ use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Phrase;
+use Magento\InventoryConfigurationApi\Exception\SkuIsNotAssignedToStockException;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask;
@@ -361,6 +363,13 @@ class SaveCartItem implements ResolverInterface
         return [];
     }
 
+    /**
+     * @param CartItemInterface $cartItem
+     * @param $qty
+     * @throws GraphQlInputException
+     * @throws LocalizedException
+     * @throws SkuIsNotAssignedToStockException
+     */
     protected function checkItemQty(CartItemInterface $cartItem, $qty): void
     {
         $product = $cartItem->getProduct();
@@ -373,13 +382,15 @@ class SaveCartItem implements ResolverInterface
         $stockStatus = $this->stockStatusRepository->get($product->getId());
         $stockItem = $stockStatus->getStockItem();
 
-        if ($stockItem->getManageStock()) {
-            $fitsInStock = $qty <= $stockItem->getQty();
-            $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
+        if (!$stockItem->getManageStock()) { // just skip all checks, if stock is not managed
+            return;
+        }
 
-            if (!($fitsInStock && $isInMinMaxSaleRange)) {
-                throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
-            }
+        $fitsInStock = $qty <= $stockItem->getQty();
+        $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
+
+        if (!($fitsInStock && $isInMinMaxSaleRange)) {
+            throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
         }
 
         $stockId = $stockItem->getStockId();
@@ -395,7 +406,7 @@ class SaveCartItem implements ResolverInterface
 
         $qtyLeftInStock = $qtyWithReservation - $stockItemConfiguration->getMinQty();
 
-        $isInStock = bccomp((string)$qtyLeftInStock, (string)$qty, 4) >= 0;
+        $isInStock = bccomp((string) $qtyLeftInStock, (string) $qty, 4) >= 0;
         $isEnoughQty = (bool)$stockItemData[GetStockItemDataInterface::IS_SALABLE] && $isInStock;
 
         if (!$isEnoughQty) {
