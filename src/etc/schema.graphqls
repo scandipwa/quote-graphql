@@ -57,6 +57,7 @@ input ExtensionsAttributeInput {
     configurable_item_options: [ConfigurableItemOptionsInput]
     customizable_options: [CustomizableOptionsInput]
     customizable_options_multi: [CustomizableOptionsInput]
+    bundle_options: [BundleOptionInput!]!
 }
 
 input ConfigurableItemOptionsInput {
