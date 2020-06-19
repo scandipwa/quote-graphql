@@ -198,6 +198,7 @@ type TotalsItem {
     name: String
     sku: String
     customizable_options: [SelectedCustomizableOption]
+    bundle_options: [SelectedBundleOption]
     product: ProductInterface
 }
 

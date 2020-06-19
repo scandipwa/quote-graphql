@@ -28,35 +28,29 @@ use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Quote\Model\Quote\Item as QuoteItem;
 use Magento\QuoteGraphQl\Model\CartItem\DataProvider\CustomizableOption;
+use Magento\BundleGraphQl\Model\Cart\BundleOptionDataProvider;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 
 class GetCartForCustomer extends CartResolver
 {
-    /**
-     * @var Configurable
-     */
+    /** @var Configurable */
     protected $configurable;
 
-    /**
-     * @var ProductFactory
-     */
+    /** @var ProductFactory */
     protected $productFactory;
 
-    /**
-     * @var DataPostProcessor
-     */
+    /** @var DataPostProcessor */
     protected $productPostProcessor;
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected $productsData;
 
-    /**
-     * @var CustomizableOption
-     */
-    private $customizableOption;
+    /** @var CustomizableOption */
+    protected $customizableOption;
+
+    /** @var BundleOptionDataProvider */
+    protected $bundleOptions;
 
     /**
      * GetCartForCustomer constructor.
@@ -67,6 +61,7 @@ class GetCartForCustomer extends CartResolver
      * @param ProductFactory $productFactory
      * @param DataPostProcessor $productPostProcessor
      * @param CustomizableOption $customizableOption
+     * @param BundleOptionDataProvider $bundleOptions
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -75,7 +70,8 @@ class GetCartForCustomer extends CartResolver
         Configurable $configurable,
         ProductFactory $productFactory,
         DataPostProcessor $productPostProcessor,
-        CustomizableOption $customizableOption
+        CustomizableOption $customizableOption,
+        BundleOptionDataProvider $bundleOptions
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -87,12 +83,14 @@ class GetCartForCustomer extends CartResolver
         $this->productFactory = $productFactory;
         $this->productPostProcessor = $productPostProcessor;
         $this->customizableOption = $customizableOption;
+        $this->bundleOptions = $bundleOptions;
     }
 
     /**
      * @param QuoteItem $item
      * @param Product $product
      * @return array
+     * @throws LocalizedException
      */
     protected function mergeQuoteItemData(
         QuoteItem $item,
@@ -100,7 +98,8 @@ class GetCartForCustomer extends CartResolver
     ) {
         return [
             'product' => $this->productsData[$product->getId()],
-            'customizable_options' => $this->getCustomizableOptions($item)
+            'customizable_options' => $this->getCustomizableOptions($item),
+            'bundle_options' => $this->bundleOptions->getData($item)
         ] + $item->getData();
     }
 
