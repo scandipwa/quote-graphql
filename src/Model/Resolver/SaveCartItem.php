@@ -270,8 +270,8 @@ class SaveCartItem implements ResolverInterface
 
         foreach ($bundleOptions as $bundleOption) {
             $optionId = $bundleOption['id'];
-            $data['bundle_option'][$optionId] = $bundleOption['value'];
-            $data['bundle_option_qty'][$optionId] = $bundleOption['quantity'];
+            $data['bundle_option'][$optionId][] = $bundleOption['value'];
+            $data['bundle_option_qty'][$optionId][] = $bundleOption['quantity'];
         }
 
         return $data;
