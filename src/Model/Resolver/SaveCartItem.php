@@ -178,11 +178,11 @@ class SaveCartItem implements ResolverInterface
                 $data = $this->setConfigurableRequestOptions($options, $data);
                 break;
             case Type::TYPE_CODE:
-                $data = $this->setBundleRequestOptions($options, $data);
+                $data = $this->setBundleRequestOptions($product, $data);
                 break;
             case ProductType::TYPE_SIMPLE:
             case ProductType::TYPE_VIRTUAL:
-                $this->setCustomizableOptions($options, $data);
+                $this->setCustomizableOptions($product, $options, $data);
                 break;
         }
 
@@ -211,10 +211,11 @@ class SaveCartItem implements ResolverInterface
     }
 
     /**
+     * @param Product $product
      * @param array $options
      * @param array $data
      */
-    private function setCustomizableOptions(array $options, array &$data): void
+    private function setCustomizableOptions(Product $product, array $options, array &$data): void
     {
         $customizableOptionsData = $options['product_option']['extension_attributes']['customizable_options'] ?? [];
         $customizableOptions = $this->getCustomizableOptions($customizableOptionsData);
@@ -258,22 +259,23 @@ class SaveCartItem implements ResolverInterface
     }
 
     /**
-     * @param array $options
-     * @param array $data
+     * @param Product $product
+     * @param array   $data
      * @return array
      */
-    private function setBundleRequestOptions(array $options, array $data): array
+    private function setBundleRequestOptions(Product $product, array $data): array
     {
-        $data['bundle_option'] = [];
-        $data['bundle_option_qty'] = [];
-        $bundleOptions = $options['product_option']['extension_attributes']['bundle_options'] ?? [];
+        /** @var Type $typedProduct */
+        $typedProduct = $product->getTypeInstance();
 
-        foreach ($bundleOptions as $bundleOption) {
-            $optionId = $bundleOption['id'];
-            $data['bundle_option'][$optionId] = $bundleOption['value'];
-            $data['bundle_option_qty'][$optionId] = $bundleOption['quantity'];
+        $selectionCollection = $typedProduct->getSelectionsCollection($typedProduct->getOptionsIds($product), $product);
+
+        $options = [];
+        foreach ($selectionCollection as $proSelection) {
+            $options[$proSelection->getOptionId()] = $proSelection->getSelectionId();
         }
 
+        $data['bundle_option'] = $options;
         return $data;
     }
 
@@ -387,10 +389,9 @@ class SaveCartItem implements ResolverInterface
             return;
         }
 
-        $fitsInStock = $qty <= $stockItem->getQty();
         $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
 
-        if (!($fitsInStock && $isInMinMaxSaleRange)) {
+        if (!$isInMinMaxSaleRange) {
             throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
         }
 
