@@ -174,15 +174,14 @@ class SaveCartItem implements ResolverInterface
         ];
 
         switch ($product->getTypeId()) {
+            case ProductType::TYPE_SIMPLE:
+            case ProductType::TYPE_VIRTUAL:
             case Configurable::TYPE_CODE:
+                $this->setCustomizableOptions($options, $data);
                 $data = $this->setConfigurableRequestOptions($options, $data);
                 break;
             case Type::TYPE_CODE:
                 $data = $this->setBundleRequestOptions($options, $data);
-                break;
-            case ProductType::TYPE_SIMPLE:
-            case ProductType::TYPE_VIRTUAL:
-                $this->setCustomizableOptions($options, $data);
                 break;
         }
 
