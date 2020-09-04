@@ -1,35 +1,34 @@
 {
-  "name": "scandipwa/quote-graphql",
-  "description": "N/A",
-  "type": "magento2-module",
-  "require": {
-    "magento/magento2-base": "^2.3.5",
-    "scandipwa/performance": "^1.0"
-  },
-  "support": {
-    "source": "https://github.com/scandipwa/quote-graphql",
-    "email": "info@scandiweb.com"
-  },
-  "authors": [
-    {
-      "name": "Alfreds Genkins",
-      "email": "alfreds@scandiweb.com"
-    },
-    {
-      "name": "Ilja Lapkovskis",
-      "email": "ilja@scandiweb.com"
-    }
-  ],
-  "license": [
-    "OSL-3.0",
-    "AFL-3.0"
-  ],
-  "autoload": {
-    "files": [
-      "src/registration.php"
+    "name": "scandipwa/quote-graphql",
+    "description": "N/A",
+    "type": "magento2-module",
+    "license": [
+        "OSL-3.0"
     ],
-    "psr-4": {
-      "ScandiPWA\\QuoteGraphQl\\": "src"
+    "require": {
+        "magento/framework": "*",
+        "magento/module-authorization": "*",
+        "magento/module-customer": "*",
+        "magento/module-webapi": "*",
+        "magento/module-sales": "*",
+        "magento/module-integration": "*",
+        "magento/module-catalog-rule": "*",
+        "magento/module-checkout": "*",
+        "magento/module-inventory-configuration-api": "*",
+        "magento/module-inventory-reservations-api": "*",
+        "magento/module-inventory-sales-api": "*",
+        "magento/module-quote": "*",
+        "magento/module-bundle": "*",
+        "magento/module-quote-graph-ql": "^100.3",
+        "magento/module-bundle-graph-ql": "^100.3",
+        "scandipwa/performance": "^1.0"
+    },
+    "autoload": {
+        "files": [
+            "src/registration.php"
+        ],
+        "psr-4": {
+            "ScandiPWA\\QuoteGraphQl\\": "src"
+        }
     }
-  }
 }
