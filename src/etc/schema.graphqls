@@ -151,6 +151,7 @@ type PaymentMethod {
 }
 
 interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\TotalsObject") {
+    applied_rule_ids: String
     items_count: Int
     customer_is_guest: Boolean
     store_id: Int
