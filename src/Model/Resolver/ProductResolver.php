@@ -100,9 +100,6 @@ class ProductResolver implements ResolverInterface
                 $searchCriteria,
                 $attributeCodes,
                 false,
-                true,
-                false,
-                false,
                 true
             )
             ->getItems();
