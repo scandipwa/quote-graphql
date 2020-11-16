@@ -23,8 +23,7 @@ use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\QuoteGraphQl\Model\Cart\GetCartForUser;
 use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\QuoteGraphQl\Model\Cart\CheckCartCheckoutAllowance;
-
+use Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory;
 /**
  * @inheritdoc
  */
@@ -51,21 +50,29 @@ class PlaceOrder implements ResolverInterface
     private $checkCartCheckoutAllowance;
 
     /**
+     * @var TransactionSearchResultInterfaceFactory
+     */
+    private $transactionFactory;
+
+    /**
      * @param GetCartForUser $getCartForUser
      * @param CartManagementInterface $cartManagement
      * @param OrderRepositoryInterface $orderRepository
      * @param CheckCartCheckoutAllowance $checkCartCheckoutAllowance
+     * @param TransactionSearchResultInterfaceFactory $transactionFactory
      */
     public function __construct(
         GetCartForUser $getCartForUser,
         CartManagementInterface $cartManagement,
         OrderRepositoryInterface $orderRepository,
-        CheckCartCheckoutAllowance $checkCartCheckoutAllowance
+        CheckCartCheckoutAllowance $checkCartCheckoutAllowance,
+        TransactionSearchResultInterfaceFactory $transactionFactory
     ) {
         $this->getCartForUser = $getCartForUser;
         $this->cartManagement = $cartManagement;
         $this->orderRepository = $orderRepository;
         $this->checkCartCheckoutAllowance = $checkCartCheckoutAllowance;
+        $this->transactionFactory = $transactionFactory;
     }
 
     /**
@@ -97,9 +104,12 @@ class PlaceOrder implements ResolverInterface
             $orderId = $this->cartManagement->placeOrder($cart->getId());
             $order = $this->orderRepository->get($orderId);
 
+            $transactionId = $this->getTransactionIdByOrderId($orderId);
+
             return [
                 'order' => [
                     'order_id' => $order->getIncrementId(),
+                    'transaction_id' => $transactionId
                 ],
             ];
         } catch (NoSuchEntityException $e) {
@@ -107,5 +117,21 @@ class PlaceOrder implements ResolverInterface
         } catch (LocalizedException $e) {
             throw new GraphQlInputException(__('Unable to place order: %message', ['message' => $e->getMessage()]), $e);
         }
+    }
+
+    /**
+     * @param $orderId
+     * @return mixed
+     * @throws LocalizedException
+     */
+    protected function getTransactionIdByOrderId($orderId)
+    {
+        try {
+            $transaction = $this->transactionFactory->create()->addOrderIdFilter($orderId)->getFirstItem();
+            return $transaction->getData('txn_id');
+        } catch (\Exception $e) {
+            throw new LocalizedException("Unable to capture transaction");
+        }
+
     }
 }

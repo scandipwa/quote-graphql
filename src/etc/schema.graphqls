@@ -260,6 +260,7 @@ type Order {
     base_order_info: BaseOrderInfo
     payment_info: PaymentInfo
     shipping_info: ShippingInfo
+    transaction_id: String
     order_products: [ProductInterface] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ProductResolver")
 }
 
