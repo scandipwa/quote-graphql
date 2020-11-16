@@ -23,6 +23,7 @@ use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\QuoteGraphQl\Model\Cart\GetCartForUser;
 use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\QuoteGraphQl\Model\Cart\CheckCartCheckoutAllowance;
 use Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory;
 /**
  * @inheritdoc
@@ -132,6 +133,5 @@ class PlaceOrder implements ResolverInterface
         } catch (\Exception $e) {
             throw new LocalizedException("Unable to capture transaction");
         }
-
     }
 }
