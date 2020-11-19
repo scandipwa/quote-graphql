@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * ScandiPWA - Progressive Web App for Magento
+ *
+ * Copyright © Scandiweb, Inc. All rights reserved.
+ * See LICENSE for license details.
+ *
+ * @license OSL-3.0 (Open Software License ("OSL") v. 3.0)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Magento\Quote\Model\Quote" type="ScandiPWA\QuoteGraphQl\Model\Quote\Quote"/>
+    <preference for="Magento\QuoteGraphQl\Model\Cart\CheckCartCheckoutAllowance" type="ScandiPWA\QuoteGraphQl\Model\Cart\CheckCartCheckoutAllowance"/>
+</config>
+
