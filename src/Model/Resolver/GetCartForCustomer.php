@@ -23,6 +23,7 @@ use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
@@ -31,6 +32,7 @@ use Magento\QuoteGraphQl\Model\CartItem\DataProvider\CustomizableOption;
 use Magento\BundleGraphQl\Model\Cart\BundleOptionDataProvider;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
+use \Magento\Quote\Api\Data\AddressInterface;
 
 class GetCartForCustomer extends CartResolver
 {
@@ -52,6 +54,9 @@ class GetCartForCustomer extends CartResolver
     /** @var BundleOptionDataProvider */
     protected $bundleOptions;
 
+    /** @var Json */
+    private $serializer;
+
     /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
@@ -71,7 +76,8 @@ class GetCartForCustomer extends CartResolver
         ProductFactory $productFactory,
         DataPostProcessor $productPostProcessor,
         CustomizableOption $customizableOption,
-        BundleOptionDataProvider $bundleOptions
+        BundleOptionDataProvider $bundleOptions,
+        Json $serializer
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -84,6 +90,7 @@ class GetCartForCustomer extends CartResolver
         $this->productPostProcessor = $productPostProcessor;
         $this->customizableOption = $customizableOption;
         $this->bundleOptions = $bundleOptions;
+        $this->serializer = $serializer;
     }
 
     /**
@@ -128,6 +135,21 @@ class GetCartForCustomer extends CartResolver
         }
 
         return $customizableOptionsData;
+    }
+
+    /**
+     * @param AddressInterface $address
+     * @return array
+     */
+    private function getAppliedTaxes(AddressInterface $address): array
+    {
+        $taxes = $address->getData('applied_taxes');
+
+        if (is_string($taxes)) {
+            $taxes = $this->serializer->unserialize($taxes);
+        }
+
+        return array_values($taxes);
     }
 
     /**
@@ -176,6 +198,7 @@ class GetCartForCustomer extends CartResolver
         $tax_amount = $address->getTaxAmount();
         $discount_amount = $address->getDiscountAmount();
         $subtotal_incl_tax = $cart->getSubtotal() + $tax_amount;
+        $applied_taxes = $this->getAppliedTaxes($address);
 
         return [
                 'items' => $itemsData,
@@ -184,7 +207,8 @@ class GetCartForCustomer extends CartResolver
                 'discount_amount' => $discount_amount,
                 // In interface it is PHPDocumented that it returns bool,
                 // while in implementation it returns int.
-                'is_virtual' => (bool) $cart->getIsVirtual()
+                'is_virtual' => (bool) $cart->getIsVirtual(),
+                'applied_taxes' => $applied_taxes
             ] + $cart->getData();
     }
 }

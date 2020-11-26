@@ -135,6 +135,8 @@ input SaveAddressInformation {
 
 type QuoteData implements TotalsObject  {
     is_virtual: Boolean
+    cart_display_config: CartDisplayConfig @doc(description: "Get cart display settings") @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\CartDisplayConfigResolver")
+    applied_taxes: [AppliedTaxItem]
 }
 
 type PaymentTotals implements TotalsObject {
@@ -328,4 +330,24 @@ interface ProductInterface {
     row_total: Float
     original_price: Float
     license_key: String
+}
+
+type CartDisplayConfig {
+    display_tax_in_price: String
+    display_tax_in_subtotal: String
+    display_tax_in_shipping_amount: String
+    include_tax_in_order_total: Boolean
+    display_full_tax_summary: Boolean
+    display_zero_tax_subtotal: Boolean
+}
+
+type AppliedTaxItem {
+    amount: Float
+    percent: Int
+    rates: [AppliedTaxItemRate]
+}
+
+type AppliedTaxItemRate {
+    percent: Int
+    title: String
 }
