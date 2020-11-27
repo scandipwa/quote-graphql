@@ -348,11 +348,11 @@ type CartDisplayConfig {
 
 type AppliedTaxItem {
     amount: Float
-    percent: Int
+    percent: Float
     rates: [AppliedTaxItemRate]
 }
 
 type AppliedTaxItemRate {
-    percent: Int
+    percent: Float
     title: String
 }
