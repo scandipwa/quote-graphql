@@ -149,7 +149,7 @@ class GetCartForCustomer extends CartResolver
             $taxes = $this->serializer->unserialize($taxes);
         }
 
-        return array_values($taxes);
+        return is_array($taxes) ? array_values($taxes) : [];
     }
 
     /**
