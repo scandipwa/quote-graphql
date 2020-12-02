@@ -101,7 +101,7 @@ class ProductResolver implements ResolverInterface
                 $attributeCodes,
                 false,
                 true,
-                false,
+                null,
                 false,
                 true
             )
