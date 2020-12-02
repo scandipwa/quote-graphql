@@ -109,6 +109,7 @@ input AddressInput {
     telephone: String
     company: String
     street: [String]
+    vat_id: String
 }
 
 input EstimateShippingCostsAddress {
