@@ -25,8 +25,10 @@ use Magento\Quote\Api\Data\EstimateAddressInterfaceFactory;
 use Magento\Quote\Api\Data\ShippingMethodInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Quote\Model\QuoteIdMask;
+use Magento\Quote\Model\QuoteRepository;
 use Magento\Quote\Model\ShippingMethodManagement;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
+use Magento\Store\Model\StoreManagerInterface;
 
 /**
  * Class EstimateShippingCosts
@@ -53,23 +55,59 @@ class EstimateShippingCosts implements ResolverInterface {
      */
     protected $addressInterfaceFactory;
 
+    /** 
+     * @var StoreManagerInterface 
+     */
+    protected $storeManager;
+
+    /** 
+     * @var QuoteRepository 
+     */
+    protected $quoteRepository;
+
     /**
      * EstimateShippingCosts constructor.
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
      * @param ShippingMethodManagement $shippingMethodManagement
      * @param ParamOverriderCartId $overriderCartId
      * @param EstimateAddressInterfaceFactory $addressInterfaceFactory
+     * @param StoreManagerInterface $storeManager
+     * @param QuoteRepository $quoteRepository,
      */
     public function __construct(
         QuoteIdMaskFactory $quoteIdMaskFactory,
         ShippingMethodManagement $shippingMethodManagement,
         ParamOverriderCartId $overriderCartId,
-        EstimateAddressInterfaceFactory $addressInterfaceFactory
+        EstimateAddressInterfaceFactory $addressInterfaceFactory,
+        StoreManagerInterface $storeManager,
+        QuoteRepository $quoteRepository
     ) {
         $this->addressInterfaceFactory = $addressInterfaceFactory;
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->shippingMethodManagement = $shippingMethodManagement;
         $this->overriderCartId = $overriderCartId;
+        $this->storeManager = $storeManager;
+        $this->quoteRepository = $quoteRepository;
+    }
+
+    /**
+     * Changes Quote store ID to the current store ID:
+     * - When switching between stores to capture correct
+     * - shipping methods.
+     *
+     * @param $quoteId
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     */
+    private function updateStoreId($cartId)
+    {
+        $quote = $this->quoteRepository->getActive($cartId);
+        $storeId = $this->storeManager->getStore()->getId();
+        if ($storeId === $quote->getStoreId()) {
+            return;
+        }
+
+        $quote->setStoreId($storeId);
+        $this->quoteRepository->save($quote);
     }
 
     /**
@@ -97,6 +135,7 @@ class EstimateShippingCosts implements ResolverInterface {
             ? $this->quoteIdMaskFactory->create()->load($args['guestCartId'], 'masked_id')->getQuoteId()
             : $this->overriderCartId->getOverriddenValue();
 
+        $this->updateStoreId($cartId);
         $shippingMethods = $this->shippingMethodManagement->estimateByAddress($cartId, $shippingAddressObject);
 
         return array_map(function($shippingMethod) {
