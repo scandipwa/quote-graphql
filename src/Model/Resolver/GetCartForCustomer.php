@@ -198,6 +198,7 @@ class GetCartForCustomer extends CartResolver
         $tax_amount = $address->getTaxAmount();
         $discount_amount = $address->getDiscountAmount();
         $subtotal_incl_tax = $cart->getSubtotal() + $tax_amount;
+        $shipping_tax_amount = $address->getShippingTaxAmount();
         $applied_taxes = $this->getAppliedTaxes($address);
 
         return [
@@ -205,6 +206,7 @@ class GetCartForCustomer extends CartResolver
                 'tax_amount' => $tax_amount,
                 'subtotal_incl_tax' => $subtotal_incl_tax,
                 'discount_amount' => $discount_amount,
+                'shipping_tax_amount' => $shipping_tax_amount,
                 // In interface it is PHPDocumented that it returns bool,
                 // while in implementation it returns int.
                 'is_virtual' => (bool) $cart->getIsVirtual(),
