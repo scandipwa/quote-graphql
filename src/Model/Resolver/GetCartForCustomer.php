@@ -33,6 +33,7 @@ use Magento\BundleGraphQl\Model\Cart\BundleOptionDataProvider;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 use \Magento\Quote\Api\Data\AddressInterface;
+use Magento\Tax\Model\Config;
 
 class GetCartForCustomer extends CartResolver
 {
@@ -57,6 +58,9 @@ class GetCartForCustomer extends CartResolver
     /** @var Json */
     private $serializer;
 
+    /** @var Config */
+    private $config;
+
     /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
@@ -67,6 +71,7 @@ class GetCartForCustomer extends CartResolver
      * @param DataPostProcessor $productPostProcessor
      * @param CustomizableOption $customizableOption
      * @param BundleOptionDataProvider $bundleOptions
+     * @param Config $config
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -77,7 +82,8 @@ class GetCartForCustomer extends CartResolver
         DataPostProcessor $productPostProcessor,
         CustomizableOption $customizableOption,
         BundleOptionDataProvider $bundleOptions,
-        Json $serializer
+        Json $serializer,
+        Config $config
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -91,6 +97,7 @@ class GetCartForCustomer extends CartResolver
         $this->customizableOption = $customizableOption;
         $this->bundleOptions = $bundleOptions;
         $this->serializer = $serializer;
+        $this->config = $config;
     }
 
     /**
@@ -152,6 +159,18 @@ class GetCartForCustomer extends CartResolver
         return is_array($taxes) ? array_values($taxes) : [];
     }
 
+    private function getTaxAmount(AddressInterface $address): float {
+        $taxAmount = $address->getTaxAmount();
+        $shippingTaxAmount = $address->getShippingTaxAmount();
+        return $taxAmount - $shippingTaxAmount;
+    }
+
+    private function getGrandTotal(AddressInterface $address): float {
+        $grandTotal = $address->getGrandTotal();
+        $shippingAmount = $address->getShippingInclTax();
+        return $grandTotal - $shippingAmount;
+    }
+
     /**
      * Fetches the data from persistence models and format it according to the GraphQL schema.
      *
@@ -194,21 +213,28 @@ class GetCartForCustomer extends CartResolver
             }
         }
 
-        $address = $cart->isVirtual() ? $cart->getBillingAddress() : $cart->getShippingAddress();
-        $tax_amount = $address->getTaxAmount();
+        $cartData = $cart->getData();
+        // In interface it is PHPDocumented that it returns bool,
+        // while in implementation it returns int.
+        $is_virtual = (bool)$cart->isVirtual();
+        $address = $is_virtual ? $cart->getBillingAddress() : $cart->getShippingAddress();
+        $tax_amount = $this->getTaxAmount($address);
         $discount_amount = $address->getDiscountAmount();
-        $subtotal_incl_tax = $cart->getSubtotal() + $tax_amount;
         $applied_taxes = $this->getAppliedTaxes($address);
+        $grand_total = $this->getGrandTotal($address);
+        $subtotal_incl_tax = $address->getSubtotalInclTax();
 
-        return [
+        return array_merge(
+            $cartData,
+            [
                 'items' => $itemsData,
                 'tax_amount' => $tax_amount,
                 'subtotal_incl_tax' => $subtotal_incl_tax,
                 'discount_amount' => $discount_amount,
-                // In interface it is PHPDocumented that it returns bool,
-                // while in implementation it returns int.
-                'is_virtual' => (bool) $cart->getIsVirtual(),
-                'applied_taxes' => $applied_taxes
-            ] + $cart->getData();
+                'is_virtual' => $is_virtual,
+                'applied_taxes' => $applied_taxes,
+                'grand_total' => $grand_total
+            ]
+        );
     }
 }

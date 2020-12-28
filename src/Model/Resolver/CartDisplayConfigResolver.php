@@ -20,6 +20,7 @@ use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Tax\Model\Config;
+use Magento\Store\Model\StoreManagerInterface;
 
 class CartDisplayConfigResolver implements ResolverInterface {
     const DISPLAY_CART_TAX_IN_PRICE_INCL_TAX = 'DISPLAY_CART_TAX_IN_PRICE_INCL_TAX';
@@ -40,12 +41,22 @@ class CartDisplayConfigResolver implements ResolverInterface {
     private $config;
 
     /**
+     * @var StoreManagerInterface
+     */
+    protected $storeManager;
+
+    /**
      * CartDisplayConfigResolver constructor.
      * @param Config $config
+     * @param StoreManagerInterface $storeManager
      */
-    public function __construct(Config $config)
+    public function __construct(
+        Config $config,
+        StoreManagerInterface $storeManager
+    )
     {
         $this->config = $config;
+        $this->storeManager = $storeManager;
     }
 
     /**
@@ -64,7 +75,7 @@ class CartDisplayConfigResolver implements ResolverInterface {
         array $args = null
     )
     {
-        $store = (int)$value['store_id'];
+        $store = (int)$this->storeManager->getStore()->getId();
 
         return [
             'display_tax_in_price' => $this->getDisplayTaxInPriceValue($store),
