@@ -1,4 +1,5 @@
 <?php
+
 /**
  * ScandiPWA - Progressive Web App for Magento
  *
@@ -33,6 +34,7 @@ use Magento\BundleGraphQl\Model\Cart\BundleOptionDataProvider;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 use \Magento\Quote\Api\Data\AddressInterface;
+use Magento\Tax\Model\Config;
 
 class GetCartForCustomer extends CartResolver
 {
@@ -57,6 +59,9 @@ class GetCartForCustomer extends CartResolver
     /** @var Json */
     private $serializer;
 
+    /** @var Config */
+    private $config;
+
     /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
@@ -67,6 +72,7 @@ class GetCartForCustomer extends CartResolver
      * @param DataPostProcessor $productPostProcessor
      * @param CustomizableOption $customizableOption
      * @param BundleOptionDataProvider $bundleOptions
+     * @param Config $config
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -77,7 +83,8 @@ class GetCartForCustomer extends CartResolver
         DataPostProcessor $productPostProcessor,
         CustomizableOption $customizableOption,
         BundleOptionDataProvider $bundleOptions,
-        Json $serializer
+        Json $serializer,
+        Config $config
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -91,6 +98,7 @@ class GetCartForCustomer extends CartResolver
         $this->customizableOption = $customizableOption;
         $this->bundleOptions = $bundleOptions;
         $this->serializer = $serializer;
+        $this->config = $config;
     }
 
     /**
@@ -194,23 +202,36 @@ class GetCartForCustomer extends CartResolver
             }
         }
 
-        $address = $cart->isVirtual() ? $cart->getBillingAddress() : $cart->getShippingAddress();
+        $cartData = $cart->getData();
+        // In interface it is PHPDocumented that it returns bool,
+        // while in implementation it returns int.
+        $is_virtual = (bool)$cart->isVirtual();
+        $address = $is_virtual ? $cart->getBillingAddress() : $cart->getShippingAddress();
         $tax_amount = $address->getTaxAmount();
         $discount_amount = $address->getDiscountAmount();
-        $subtotal_incl_tax = $cart->getSubtotal() + $tax_amount;
-        $shipping_tax_amount = $address->getShippingTaxAmount();
         $applied_taxes = $this->getAppliedTaxes($address);
+        $grand_total = $address->getGrandTotal();
+        $subtotal_incl_tax = $address->getSubtotalInclTax();
+        $shipping_tax_amount = $address->getShippingTaxAmount();
+        $shipping_amount = $address->getShippingAmount();
+        $shipping_incl_tax = $address->getShippingInclTax();
+        $shipping_method = $address->getShippingMethod();
 
-        return [
+        return array_merge(
+            $cartData,
+            [
                 'items' => $itemsData,
                 'tax_amount' => $tax_amount,
                 'subtotal_incl_tax' => $subtotal_incl_tax,
                 'discount_amount' => $discount_amount,
+                'is_virtual' => $is_virtual,
+                'applied_taxes' => $applied_taxes,
+                'grand_total' => $grand_total,
                 'shipping_tax_amount' => $shipping_tax_amount,
-                // In interface it is PHPDocumented that it returns bool,
-                // while in implementation it returns int.
-                'is_virtual' => (bool) $cart->getIsVirtual(),
-                'applied_taxes' => $applied_taxes
-            ] + $cart->getData();
+                'shipping_amount' => $shipping_amount,
+                'shipping_incl_tax' => $shipping_incl_tax,
+                'shipping_method' => $shipping_method
+            ]
+        );
     }
 }
