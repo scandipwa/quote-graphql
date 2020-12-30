@@ -159,18 +159,6 @@ class GetCartForCustomer extends CartResolver
         return is_array($taxes) ? array_values($taxes) : [];
     }
 
-    private function getTaxAmount(AddressInterface $address): float {
-        $taxAmount = $address->getTaxAmount();
-        $shippingTaxAmount = $address->getShippingTaxAmount();
-        return $taxAmount - $shippingTaxAmount;
-    }
-
-    private function getGrandTotal(AddressInterface $address): float {
-        $grandTotal = $address->getGrandTotal();
-        $shippingAmount = $address->getShippingInclTax();
-        return $grandTotal - $shippingAmount;
-    }
-
     /**
      * Fetches the data from persistence models and format it according to the GraphQL schema.
      *
@@ -218,11 +206,15 @@ class GetCartForCustomer extends CartResolver
         // while in implementation it returns int.
         $is_virtual = (bool)$cart->isVirtual();
         $address = $is_virtual ? $cart->getBillingAddress() : $cart->getShippingAddress();
-        $tax_amount = $this->getTaxAmount($address);
+        $tax_amount = $address->getTaxAmount();
         $discount_amount = $address->getDiscountAmount();
         $applied_taxes = $this->getAppliedTaxes($address);
-        $grand_total = $this->getGrandTotal($address);
+        $grand_total = $address->getGrandTotal();
         $subtotal_incl_tax = $address->getSubtotalInclTax();
+        $shipping_tax_amount = $address->getShippingTaxAmount();
+        $shipping_amount = $address->getShippingAmount();
+        $shipping_incl_tax = $address->getShippingInclTax();
+        $shipping_method = $address->getShippingMethod();
 
         return array_merge(
             $cartData,
@@ -233,7 +225,11 @@ class GetCartForCustomer extends CartResolver
                 'discount_amount' => $discount_amount,
                 'is_virtual' => $is_virtual,
                 'applied_taxes' => $applied_taxes,
-                'grand_total' => $grand_total
+                'grand_total' => $grand_total,
+                'shipping_tax_amount' => $shipping_tax_amount,
+                'shipping_amount' => $shipping_amount,
+                'shipping_incl_tax' => $shipping_incl_tax,
+                'shipping_method' => $shipping_method
             ]
         );
     }

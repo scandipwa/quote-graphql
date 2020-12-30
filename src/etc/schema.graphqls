@@ -185,6 +185,7 @@ interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\R
     base_shipping_tax_amount: Float
     subtotal_incl_tax: Float
     shipping_incl_tax: Float
+    shipping_method: String
     base_shipping_incl_tax: Float
     base_currency_code: String
     quote_currency_code: String
