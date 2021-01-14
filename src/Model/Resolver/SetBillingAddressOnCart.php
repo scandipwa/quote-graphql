@@ -21,6 +21,7 @@ use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\QuoteGraphQl\Model\Cart\CheckCartCheckoutAllowance;
 use Magento\QuoteGraphQl\Model\Cart\GetCartForUser;
 use Magento\QuoteGraphQl\Model\Cart\SetBillingAddressOnCart as SetBillingAddressOnCartModel;
+use Magento\Customer\Api\CustomerRepositoryInterface;
 
 /**
  * Mutation resolver for setting payment method for shopping cart
@@ -39,22 +40,28 @@ class SetBillingAddressOnCart implements ResolverInterface
     /** @var CheckCartCheckoutAllowance  */
     protected $checkCartCheckoutAllowance;
 
+    /** @var CustomerRepositoryInterface */
+    protected $customerRepository;
+
     /**
      * @param GetCartForUser $getCartForUser
      * @param CartManagementInterface $cartManagement
      * @param SetBillingAddressOnCartModel $setBillingAddressOnCart
      * @param CheckCartCheckoutAllowance $checkCartCheckoutAllowance
+     * @param CustomerRepositoryInterface $customerRepository
      */
     public function __construct(
         GetCartForUser $getCartForUser,
         CartManagementInterface $cartManagement,
         SetBillingAddressOnCartModel $setBillingAddressOnCart,
-        CheckCartCheckoutAllowance $checkCartCheckoutAllowance
+        CheckCartCheckoutAllowance $checkCartCheckoutAllowance,
+        CustomerRepositoryInterface $customerRepository
     ) {
         $this->getCartForUser = $getCartForUser;
         $this->cartManagement = $cartManagement;
         $this->setBillingAddressOnCart = $setBillingAddressOnCart;
         $this->checkCartCheckoutAllowance = $checkCartCheckoutAllowance;
+        $this->customerRepository = $customerRepository;
     }
 
     /**
@@ -74,7 +81,7 @@ class SetBillingAddressOnCart implements ResolverInterface
         }
         $billingAddress = $args['input']['billing_address'];
 
-        $storeId = (int) $context->getExtensionAttributes()->getStore()->getId();
+        $storeId = (int)$context->getExtensionAttributes()->getStore()->getId();
 
         $customerId = $context->getUserId();
         if ($guestCartId !== '') {
@@ -84,7 +91,23 @@ class SetBillingAddressOnCart implements ResolverInterface
         }
 
         $this->checkCartCheckoutAllowance->execute($cart);
-        $this->setBillingAddressOnCart->execute($context, $cart, $billingAddress);
+        $billingAddressIsSaved = false;
+
+        if (isset($args['input']['same_as_shipping']) && $args['input']['same_as_shipping']) {
+            $customer = $cart->getCustomer();
+            $shippingAddressId = $customer->getDefaultShipping();
+            $billingAddressId = $customer->getDefaultBilling();
+
+            if ($shippingAddressId && !$billingAddressId) {
+                $customer->setDefaultBilling($shippingAddressId);
+                $this->customerRepository->save($customer);
+                $billingAddressIsSaved = true;
+            }
+        }
+
+         if (!$billingAddressIsSaved) {
+            $this->setBillingAddressOnCart->execute($context, $cart, $billingAddress);
+        }
 
         return [
             'cart' => [

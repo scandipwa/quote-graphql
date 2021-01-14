@@ -37,6 +37,7 @@ type Mutation {
 input S_SetBillingAddressOnCartInput {
     guest_cart_id: String
     billing_address: BillingAddressInput!
+    same_as_shipping: Boolean
 }
 
 input S_SetPaymentMethodOnCartInput {
