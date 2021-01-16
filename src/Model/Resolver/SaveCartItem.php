@@ -387,10 +387,25 @@ class SaveCartItem implements ResolverInterface
         }
 
         $fitsInStock = $qty <= $stockItem->getQty();
-        $isInMinMaxSaleRange = $qty >= $stockItem->getMinSaleQty() || $qty <= $stockItem->getMaxSaleQty();
 
-        if (!($fitsInStock && $isInMinMaxSaleRange)) {
+        if (!$fitsInStock) {
             throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
+        }
+
+        $isMinSaleQuantityCheckFailed = $qty < $stockItem->getMinSaleQty();
+
+        if ($isMinSaleQuantityCheckFailed) {
+            throw new GraphQlInputException(
+                new Phrase('The fewest you may purchase is %1', [$stockItem->getMinSaleQty()])
+            );
+        }
+
+        $isMaxSaleQuantityCheckFailed = $qty > $stockItem->getMaxSaleQty();
+
+        if ($isMaxSaleQuantityCheckFailed) {
+            throw new GraphQlInputException(
+                new Phrase('The requested qty exceeds the maximum qty allowed in shopping cart')
+            );
         }
 
         $stockId = $stockItem->getStockId();
