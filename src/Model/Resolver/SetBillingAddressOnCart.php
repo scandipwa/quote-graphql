@@ -80,6 +80,10 @@ class SetBillingAddressOnCart implements ResolverInterface
             throw new GraphQlInputException(__('Required parameter "billing_address" is missing'));
         }
         $billingAddress = $args['input']['billing_address'];
+        $customerAddressId = isset($billingAddress['customer_address_id'])
+            ? $billingAddress['customer_address_id']
+            : null;
+        $sameAsShipping = !!(isset($args['input']['same_as_shipping']) && $args['input']['same_as_shipping']);
 
         $storeId = (int)$context->getExtensionAttributes()->getStore()->getId();
 
@@ -93,15 +97,16 @@ class SetBillingAddressOnCart implements ResolverInterface
         $this->checkCartCheckoutAllowance->execute($cart);
         $billingAddressIsSaved = false;
 
-        if (isset($args['input']['same_as_shipping']) && $args['input']['same_as_shipping']) {
+        if ($sameAsShipping && $customerAddressId) {
             $customer = $cart->getCustomer();
-            $shippingAddressId = $customer->getDefaultShipping();
             $billingAddressId = $customer->getDefaultBilling();
 
-            if ($shippingAddressId && !$billingAddressId) {
-                $customer->setDefaultBilling($shippingAddressId);
+            if (!$billingAddressId) {
+                $customer->setDefaultBilling((string)$customerAddressId);
                 $this->customerRepository->save($customer);
                 $billingAddressIsSaved = true;
+            } else {
+                unset($billingAddress['customer_address_id']);
             }
         }
 
