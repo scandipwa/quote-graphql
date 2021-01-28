@@ -302,6 +302,7 @@ type ShippingInfo {
     shipping_address: OrderCustomerAddress
     shipping_description: String
     shipping_amount: Float
+    shipping_incl_tax: Float
     tracking_numbers: [String]
 }
 
