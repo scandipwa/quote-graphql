@@ -92,6 +92,7 @@ class ExpandedOrderResolver implements ResolverInterface
 
         $shippingInfo = [
             'shipping_amount' => $order->getShippingAmount(),
+            'shipping_incl_tax' => $order->getShippingInclTax(),
             'shipping_method' => $order->getShippingMethod(),
             'shipping_address' => $order->getShippingAddress(),
             'shipping_description' => $order->getShippingDescription(),
