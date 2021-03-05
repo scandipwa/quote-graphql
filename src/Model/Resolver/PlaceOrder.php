@@ -24,6 +24,8 @@ use Magento\Quote\Api\CartManagementInterface;
 use Magento\QuoteGraphQl\Model\Cart\GetCartForUser;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\QuoteGraphQl\Model\Cart\CheckCartCheckoutAllowance;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Quote\Api\CartRepositoryInterface;
 
 /**
  * @inheritdoc
@@ -51,21 +53,38 @@ class PlaceOrder implements ResolverInterface
     private $checkCartCheckoutAllowance;
 
     /**
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+
+    /**
+     * @var CartRepositoryInterface
+     */
+    private $cartRepository;
+
+    /**
+     * PlaceOrder constructor.
      * @param GetCartForUser $getCartForUser
      * @param CartManagementInterface $cartManagement
      * @param OrderRepositoryInterface $orderRepository
      * @param CheckCartCheckoutAllowance $checkCartCheckoutAllowance
+     * @param StoreManagerInterface $storeManager
+     * @param CartRepositoryInterface $cartRepository
      */
     public function __construct(
         GetCartForUser $getCartForUser,
         CartManagementInterface $cartManagement,
         OrderRepositoryInterface $orderRepository,
-        CheckCartCheckoutAllowance $checkCartCheckoutAllowance
+        CheckCartCheckoutAllowance $checkCartCheckoutAllowance,
+        StoreManagerInterface $storeManager,
+        CartRepositoryInterface $cartRepository
     ) {
         $this->getCartForUser = $getCartForUser;
         $this->cartManagement = $cartManagement;
         $this->orderRepository = $orderRepository;
         $this->checkCartCheckoutAllowance = $checkCartCheckoutAllowance;
+        $this->storeManager = $storeManager;
+        $this->cartRepository = $cartRepository;
     }
 
     /**
@@ -94,6 +113,10 @@ class PlaceOrder implements ResolverInterface
         }
 
         try {
+            $currStoreId = $this->storeManager->getStore()->getId();
+            $cart->setStoreId($currStoreId);
+            $this->cartRepository->save($cart);
+            
             $orderId = $this->cartManagement->placeOrder($cart->getId());
             $order = $this->orderRepository->get($orderId);
 
