@@ -264,6 +264,7 @@ type BaseOrderInfo {
     status_label: String
     grand_total: Float
     sub_total: Float
+    currency_code: String
 }
 
 type Order {
