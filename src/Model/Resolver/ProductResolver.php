@@ -119,8 +119,8 @@ class ProductResolver implements ResolverInterface
             /** @var $item Item */
             $data[$key] = $productsData[$item->getProductId()];
             $data[$key]['qty'] = $item->getQtyOrdered();
-            $data[$key]['row_total'] = $item->getBaseRowTotalInclTax();
-            $data[$key]['original_price'] = $item->getBaseOriginalPrice();
+            $data[$key]['row_total'] = $item->getRowTotalInclTax();
+            $data[$key]['original_price'] = $item->getOriginalPrice();
             $data[$key]['license_key'] = $item['license_key'];
         }
 
