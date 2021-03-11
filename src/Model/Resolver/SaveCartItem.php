@@ -42,6 +42,7 @@ use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
 use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
 use Magento\InventoryReservationsApi\Model\GetReservationsQuantityInterface;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
+use ScandiPWA\QuoteGraphQl\Helper\ImageUpload;
 
 /**
  * Class SaveCartItem
@@ -105,6 +106,11 @@ class SaveCartItem implements ResolverInterface
     private $getStockItemConfiguration;
 
     /**
+     * @var ImageUpload
+     */
+    private $imageUpload;
+
+    /**
      * SaveCartItem constructor.
      *
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
@@ -115,6 +121,10 @@ class SaveCartItem implements ResolverInterface
      * @param QuoteIdMask $quoteIdMaskResource
      * @param Configurable $configurableType
      * @param StockStatusRepositoryInterface $stockStatusRepository
+     * @param GetStockItemDataInterface $getStockItemData
+     * @param GetReservationsQuantityInterface $getReservationsQuantity
+     * @param GetStockItemConfigurationInterface $getStockItemConfiguration
+     * @param ImageUpload $imageUpload
      */
     public function __construct(
         QuoteIdMaskFactory $quoteIdMaskFactory,
@@ -127,7 +137,8 @@ class SaveCartItem implements ResolverInterface
         StockStatusRepositoryInterface $stockStatusRepository,
         GetStockItemDataInterface $getStockItemData,
         GetReservationsQuantityInterface $getReservationsQuantity,
-        GetStockItemConfigurationInterface $getStockItemConfiguration
+        GetStockItemConfigurationInterface $getStockItemConfiguration,
+        ImageUpload $imageUpload
     ) {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteRepository = $quoteRepository;
@@ -140,6 +151,7 @@ class SaveCartItem implements ResolverInterface
         $this->getStockItemData = $getStockItemData;
         $this->getReservationsQuantity = $getReservationsQuantity;
         $this->getStockItemConfiguration = $getStockItemConfiguration;
+        $this->imageUpload = $imageUpload;
     }
 
     /**
@@ -358,6 +370,8 @@ class SaveCartItem implements ResolverInterface
             $quote = $this->quoteRepository->getActive($quoteId);
             $quote->setTotalsCollectedFlag(false)->collectTotals();
             $this->quoteRepository->save($quote);
+
+            $this->imageUpload->processFileUpload($quote, $requestCartItem);
         }
 
         return [];

@@ -365,3 +365,14 @@ type AppliedTaxItemRate {
 extend input CartAddressInput {
     vat_id: String
 }
+
+type CustomizableFileOption implements CustomizableOptionInterface {
+    value: CustomizableFileValue
+}
+
+type CustomizableFieldValue {
+    file_extension: String @doc(description: "Option file extensions (If type file).")
+    price: Float
+    price_type: PriceTypeEnum
+    sku: String
+}
