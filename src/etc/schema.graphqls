@@ -68,6 +68,7 @@ input ExtensionsAttributeInput {
     configurable_item_options: [ConfigurableItemOptionsInput]
     customizable_options: [CustomizableOptionsInput]
     customizable_options_multi: [CustomizableOptionsInput]
+    downloadable_product_links: [DownloadableProductLinksInput]
     bundle_options: [BundleOptionInput!]
 }
 
@@ -79,6 +80,10 @@ input ConfigurableItemOptionsInput {
 input CustomizableOptionsInput {
     option_id: String!
     option_value: String
+}
+
+input DownloadableProductLinksInput {
+    link_id: Int
 }
 
 input PaymentInformation {
@@ -218,7 +223,13 @@ type TotalsItem {
     sku: String
     customizable_options: [SelectedCustomizableOption]
     bundle_options: [SelectedBundleOption]
+    downloadable_links: [SelectedDownloadableLinks]
     product: ProductInterface
+}
+
+type SelectedDownloadableLinks {
+    label: String
+    id: Int
 }
 
 type TotalsSegment {
