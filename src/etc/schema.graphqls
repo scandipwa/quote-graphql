@@ -69,6 +69,12 @@ input ExtensionsAttributeInput {
     customizable_options: [CustomizableOptionsInput]
     customizable_options_multi: [CustomizableOptionsInput]
     bundle_options: [BundleOptionInput!]
+    grouped_options: [GroupedOptionInput!]
+}
+
+input GroupedOptionInput {
+    product_id: Int!
+    quantity: Int!
 }
 
 input ConfigurableItemOptionsInput {
