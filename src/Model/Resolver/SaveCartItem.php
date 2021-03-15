@@ -42,6 +42,7 @@ use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
 use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
 use Magento\InventoryReservationsApi\Model\GetReservationsQuantityInterface;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
+use Magento\Downloadable\Model\Product\Type as DownloadableType;
 
 /**
  * Class SaveCartItem
@@ -183,6 +184,9 @@ class SaveCartItem implements ResolverInterface
             case Type::TYPE_CODE:
                 $data = $this->setBundleRequestOptions($options, $data);
                 break;
+            case DownloadableType::TYPE_DOWNLOADABLE:
+                $data = $this->setDownloadableRequestLinks($options, $data);
+                break;
         }
 
         $request = new DataObject();
@@ -273,6 +277,21 @@ class SaveCartItem implements ResolverInterface
             $data['bundle_option_qty'][$optionId] = $bundleOption['quantity'];
         }
 
+        return $data;
+    }
+
+    /**
+     * @param array $options
+     * @param array $data
+     * @return array
+     */
+    private function setDownloadableRequestLinks(array $options, array $data): array
+    {
+        $data['links'] = [];
+        $linkOptions = $options['product_option']['extension_attributes']['downloadable_product_links'] ?? [];
+        foreach ($linkOptions as $link) {
+            $data['links'][] = $link['link_id'];
+        }
         return $data;
     }
 
