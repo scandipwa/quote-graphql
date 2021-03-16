@@ -10,6 +10,12 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Api\Data\PaymentMethodInterface;
 use Magento\Quote\Model\QuoteIdMask;
+use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Sales\Model\Order;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Customer\Model\Customer;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Customer\Model\CustomerFactory;
 
 /**
  * Class LinkOrder
@@ -18,34 +24,41 @@ use Magento\Quote\Model\QuoteIdMask;
 class LinkOrder implements ResolverInterface
 {
     /**
-     * @var \Magento\Sales\Api\OrderRepositoryInterface
+     * @var OrderRepositoryInterface
      */
     protected $orderRepository;
 
     /**
-     * @var \Magento\Framework\Api\SearchCriteriaBuilder
+     * @var CheckoutSession
      */
-    protected $searchCriteriaBuilder;
+    protected $checkoutSession;
 
     /**
-     * @var \Magento\Customer\Model\Session
+     * @var StoreManagerInterface
      */
-    protected $session;
+    protected $storeManager;
+
+    /**
+     * @var CustomerFactory
+     */
+    protected $customerFactory;
 
     /**
      * LinkOrder constructor.
-     * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
-     * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param \Magento\Customer\Model\Session $customerSession
+     * @param OrderRepositoryInterface $orderRepository
+     * @param CheckoutSession $checkoutSession
+     * @param StoreManagerInterface $storeManager
      */
     public function __construct(
-        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder,
-        \Magento\Customer\Model\Session $customerSession
+        OrderRepositoryInterface $orderRepository,
+        CheckoutSession $checkoutSession,
+        StoreManagerInterface $storeManager,
+        CustomerFactory $customerFactory
     ) {
         $this->orderRepository = $orderRepository;
-        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->session = $customerSession;
+        $this->checkoutSession = $checkoutSession;
+        $this->storeManager = $storeManager;
+        $this->customerFactory = $customerFactory;
     }
 
     /**
@@ -66,24 +79,59 @@ class LinkOrder implements ResolverInterface
         array $value = null,
         array $args = null
     ) {
-        if (!isset($args['order_id']) || !isset($args['customer_id'])) {
+        if (!isset($args['customer_email'])) {
             return false;
         }
 
-        $incrementId = $args['order_id'];
-        $customerId = $args['customer_id'];
-
-        $searchCriteria = $this->searchCriteriaBuilder->addFilter('increment_id', $incrementId, 'eq')->create();
-        $order = $this->orderRepository->getList($searchCriteria)->getFirstItem();
-
-        // If order is un-siggned
-        if ($order->getId() && !$order->getCustomerId()) {
-            $order->setCustomerId($customerId);
-            $order->setCustomerIsGuest(0);
-            $this->orderRepository->save($order);
-            return true;
+        $customerEmail = $args['customer_email'];
+        $customer = $this->getCustomerByEmail($customerEmail);
+        if (!$customer->getId()) {
+            return false;
         }
 
-        return false;
+        // Loads last order from session
+        $order = $this->checkoutSession->getLastRealOrder();
+
+        if (!$this->validateOrder($order, $customer)) {
+            return false;
+        }
+
+        $order->setCustomerId($customer->getId());
+        $order->setCustomerIsGuest(0);
+        $this->orderRepository->save($order);
+
+        return true;
+    }
+
+    /**
+     * @param Order $order
+     * @param Customer $custumer
+     * @return bool
+     */
+    public function validateOrder($order, $custumer) : bool {
+        // If order is un-siggned
+        if (!$order->getId() || $order->getCustomerId()) {
+            return false;
+        }
+
+        // If order was placed in same store
+        if ($order->getStoreId() !== $custumer->getStoreId()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param $email
+     * @return Customer
+     * @throws NoSuchEntityException
+     */
+    public function getCustomerByEmail($email)
+    {
+        $websiteID = $this->storeManager->getStore()->getWebsiteId();
+        $customer = $this->customerFactory->create()->setWebsiteId($websiteID)->loadByEmail($email);
+
+        return $customer;
     }
 }
