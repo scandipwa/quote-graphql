@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
+use Exception;
 use Magento\Checkout\Api\Data\ShippingInformationInterface;
 use Magento\Checkout\Api\Data\ShippingInformationInterfaceFactory;
 use Magento\Checkout\Api\GuestShippingInformationManagementInterface;
@@ -24,6 +25,8 @@ use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Checkout\Model\ShippingInformationManagement;
+use Magento\InventoryInStorePickupApi\Api\Data\PickupLocationInterface;
+use Magento\Quote\Api\Data\AddressExtensionInterfaceFactory;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
 use Magento\Quote\Api\Data\AddressInterfaceFactory;
 use \Magento\Quote\Api\Data\PaymentMethodInterface;
@@ -59,29 +62,50 @@ class SaveAddressInformation implements ResolverInterface {
      */
     protected $addressInterfaceFactory;
 
+    /**
+     * @var AddressExtensionInterfaceFactory
+     */
+    protected $addressExtensionInterfaceFactory;
+
+    /**
+     * Pick up in store method code (In magento original class it's private)
+     */
+    protected const PICKUP_METHOD_CODE  = 'pickup';
+
+    /**
+     * SaveAddressInformation constructor.
+     * @param ShippingInformationManagementInterface $shippingInformationManagement
+     * @param GuestShippingInformationManagementInterface $guestShippingInformationManagement
+     * @param ShippingInformationInterfaceFactory $shippingInformation
+     * @param ParamOverriderCartId $overriderCartId
+     * @param AddressInterfaceFactory $addressInterfaceFactory
+     * @param AddressExtensionInterfaceFactory $addressExtensionInterfaceFactory
+     */
     public function __construct(
         ShippingInformationManagementInterface $shippingInformationManagement,
         GuestShippingInformationManagementInterface $guestShippingInformationManagement,
         ShippingInformationInterfaceFactory $shippingInformation,
         ParamOverriderCartId $overriderCartId,
-        AddressInterfaceFactory $addressInterfaceFactory
+        AddressInterfaceFactory $addressInterfaceFactory,
+        AddressExtensionInterfaceFactory $addressExtensionInterfaceFactory
     ) {
         $this->shippingInformation = $shippingInformation;
         $this->overriderCartId = $overriderCartId;
         $this->shippingInformationManagement = $shippingInformationManagement;
         $this->guestShippingInformationManagement = $guestShippingInformationManagement;
         $this->addressInterfaceFactory = $addressInterfaceFactory;
+        $this->addressExtensionInterfaceFactory = $addressExtensionInterfaceFactory;
     }
 
     /**
      * Fetches the data from persistence models and format it according to the GraphQL schema.
      *
-     * @param \Magento\Framework\GraphQl\Config\Element\Field $field
+     * @param Field $field
      * @param ContextInterface $context
      * @param ResolveInfo $info
      * @param array|null $value
      * @param array|null $args
-     * @throws \Exception
+     * @throws Exception
      * @return mixed|Value
      */
     public function resolve(
@@ -102,6 +126,18 @@ class SaveAddressInformation implements ResolverInterface {
 
         $shippingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $shippingAddress ]);
         $billingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $billingAddress ]);
+
+        if ($shippingMethodCode === self::PICKUP_METHOD_CODE && isset($shippingAddress['extension_attributes'])) {
+            foreach ($shippingAddress['extension_attributes'] as $attribute) {
+                if ($attribute['attribute_code'] === PickupLocationInterface::PICKUP_LOCATION_CODE) {
+                    $shippingAddressObject->setExtensionAttributes(
+                        $this->addressExtensionInterfaceFactory->create()->setPickupLocationCode($attribute['value'])
+                    );
+
+                    break;
+                }
+            }
+        }
 
         $addressInformation = $this->shippingInformation->create([
             'data' => [
