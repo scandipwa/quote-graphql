@@ -390,6 +390,8 @@ class SaveCartItem implements ResolverInterface
             $quote->setTotalsCollectedFlag(false)->collectTotals();
             $this->quoteRepository->save($quote);
 
+            // We need file upload logic exactly after new quote has arrived
+            // Otherwise magento gives us quote with empty prices
             $this->imageUpload->processFileUpload($quote, $requestCartItem);
         }
 

@@ -15,6 +15,7 @@ namespace ScandiPWA\QuoteGraphQl\Helper;
 use Exception;
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Filesystem;
+use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote\Item\Option;
 use Magento\Quote\Model\Quote\Item\OptionFactory;
 
@@ -33,16 +34,24 @@ class ImageUpload {
     protected $mediaPath;
 
     /**
+     * @var CartRepositoryInterface
+     */
+    protected $quoteRepository;
+
+    /**
      * ImageUpload constructor.
      * @param OptionFactory $optionFactory
      * @param Filesystem $filesystem
+     * @param CartRepositoryInterface $quoteRepository
      */
     public function __construct(
         OptionFactory $optionFactory,
-        Filesystem $filesystem
+        Filesystem $filesystem,
+        CartRepositoryInterface $quoteRepository
     ) {
         $this->optionFactory = $optionFactory;
         $this->mediaPath = $filesystem->getDirectoryRead(DirectoryList::MEDIA)->getAbsolutePath();
+        $this->quoteRepository = $quoteRepository;
     }
 
     /**
@@ -58,6 +67,7 @@ class ImageUpload {
             $quoteItem = array_slice($quote->getItems(), -1)[0];
             $existingOptionsIds = $quoteItem->getOptionByCode('option_ids') ?? $this->createOptionIds($quoteItem);
             $existingOptionsIdsValue = $existingOptionsIds->getValue();
+            $isNecessaryToUpdateQuote = false;
 
             foreach ($options as $option) {
                 $optionId = $option['option_id'];
@@ -69,7 +79,7 @@ class ImageUpload {
                     !in_array($optionId, explode(',', $existingOptionsIdsValue))
                     && strpos($optionValue, 'base64')
                 ) {
-                    $filename = base64_encode(sprintf(
+                    $filename = $option['option_filename'] ?? base64_encode(sprintf(
                         '%s-%s-%s',
                         $quoteId,
                         $productId,
@@ -98,7 +108,16 @@ class ImageUpload {
                     ])->save();
 
                     $this->createFileAndFolder($quoteId, $optionValue , $filename);
+                    $isNecessaryToUpdateQuote = true;
                 }
+            }
+
+            // We need to get quote with updated options and re-save it to update price for quote item
+            // Otherwise quote will not have correct price until it will be updated
+            if ($isNecessaryToUpdateQuote) {
+                $quote = $this->quoteRepository->getActive($quoteId);
+                $quote->setTotalsCollectedFlag(false)->collectTotals();
+                $this->quoteRepository->save($quote);
             }
         }
     }
