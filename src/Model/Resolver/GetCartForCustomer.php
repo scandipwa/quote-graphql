@@ -35,6 +35,8 @@ use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 use \Magento\Quote\Api\Data\AddressInterface;
 use Magento\Tax\Model\Config;
+use Magento\Downloadable\Model\LinkRepository;
+use Magento\Downloadable\Model\Link;
 
 class GetCartForCustomer extends CartResolver
 {
@@ -62,6 +64,9 @@ class GetCartForCustomer extends CartResolver
     /** @var Config */
     private $config;
 
+    /** @var LinkRepository */
+    protected $linkRepository;
+
     /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
@@ -73,6 +78,7 @@ class GetCartForCustomer extends CartResolver
      * @param CustomizableOption $customizableOption
      * @param BundleOptionDataProvider $bundleOptions
      * @param Config $config
+     * @param LinkRepository $linkRepository
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -84,7 +90,8 @@ class GetCartForCustomer extends CartResolver
         CustomizableOption $customizableOption,
         BundleOptionDataProvider $bundleOptions,
         Json $serializer,
-        Config $config
+        Config $config,
+        LinkRepository $linkRepository
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -99,6 +106,7 @@ class GetCartForCustomer extends CartResolver
         $this->bundleOptions = $bundleOptions;
         $this->serializer = $serializer;
         $this->config = $config;
+        $this->linkRepository = $linkRepository;
     }
 
     /**
@@ -114,9 +122,41 @@ class GetCartForCustomer extends CartResolver
         return [
             'product' => $this->productsData[$product->getId()],
             'customizable_options' => $this->getCustomizableOptions($item),
-            'bundle_options' => $this->bundleOptions->getData($item)
+            'bundle_options' => $this->bundleOptions->getData($item),
+            'downloadable_links' => $this->getDownloadableLinks($item, $product)
         ] + $item->getData();
     }
+
+    /**
+     * @param $item
+     * @param $product
+     * @return array
+     */
+    private function getDownloadableLinks($item, $product): array
+    {
+        $quoteItemLinks= $item->getOptionByCode('downloadable_link_ids');
+
+        if (null === $quoteItemLinks) {
+            return [];
+        }
+
+        $downloadableLinks = [];
+        $downloadableLinkIds = explode(',', $quoteItemLinks->getValue());
+        $productLinks = $this->linkRepository->getLinksByProduct($product);
+
+        /** @var Link $productLink  */
+        foreach ($productLinks as $productLink) {
+            if (in_array($productLink->getId(), $downloadableLinkIds)){
+                $downloadableLinks[] = [
+                    'label' => $productLink->getTitle(),
+                    'id' => $productLink->getId()
+                ];
+            }
+        }
+
+        return $downloadableLinks;
+    }
+
 
     /**
      * @param $item
