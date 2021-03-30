@@ -28,6 +28,7 @@ type Mutation {
     removeCartItem(guestCartId: String, item_id: Int!): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCartItem")
     applyCoupon(guestCartId: String, coupon_code: String!): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ApplyCoupon")
     removeCoupon(guestCartId: String): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCoupon")
+    linkOrder(customer_email: String!): Boolean @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\LinkOrder")
 
     # Magento 2 overrides to stop sending logged in user cart IDs
     s_setPaymentMethodOnCart(input: S_SetPaymentMethodOnCartInput!): SetPaymentMethodOnCartOutput @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SetPaymentMethodOnCart")
