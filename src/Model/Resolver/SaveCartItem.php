@@ -167,7 +167,7 @@ class SaveCartItem implements ResolverInterface
      * @param array $options
      * @return array
      */
-    private function setOptionsFromBuyRequest(Product $product, array $options) : array {
+    private function getOptionsFromBuyRequest(Product $product, array $options) : array {
         $request = $options['product_option']['buy_request'];
         $data = json_decode($request, true);
         $data['product'] = $product->getEntityId();
@@ -181,7 +181,7 @@ class SaveCartItem implements ResolverInterface
      * @param array $options
      * @return array
      */
-    private function setOptionsFromExtensions(Product $product, array $options) : array {
+    private function getOptionsFromExtensions(Product $product, array $options) : array {
         $options = $this->prepareOptions($options);
         $data = [
             'product' => $product->getEntityId(),
@@ -214,9 +214,9 @@ class SaveCartItem implements ResolverInterface
     private function prepareAddItem(Product $product, array $options): DataObject
     {
         if (isset($options['product_option']['buy_request'])) {
-            $data = $this->setOptionsFromBuyRequest($product, $options);
+            $data = $this->getOptionsFromBuyRequest($product, $options);
         } else {
-            $data = $this->setOptionsFromExtensions($product, $options);
+            $data = $this->getOptionsFromExtensions($product, $options);
         }
 
         $request = new DataObject();
