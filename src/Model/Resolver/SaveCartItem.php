@@ -162,12 +162,26 @@ class SaveCartItem implements ResolverInterface
     }
 
     /**
+     * @param string $request
      * @param Product $product
-     * @param array   $options
-     * @return DataObject
+     * @param array $options
+     * @return array
      */
-    private function prepareAddItem(Product $product, array $options): DataObject
-    {
+    private function getOptionsFromBuyRequest(Product $product, array $options) : array {
+        $request = $options['product_option']['buy_request'];
+        $data = json_decode($request, true);
+        $data['product'] = $product->getEntityId();
+        $data['qty'] = $options['quantity'];
+
+        return $data;
+    }
+
+    /**
+     * @param Product $product
+     * @param array $options
+     * @return array
+     */
+    private function getOptionsFromExtensions(Product $product, array $options) : array {
         $options = $this->prepareOptions($options);
         $data = [
             'product' => $product->getEntityId(),
@@ -187,6 +201,22 @@ class SaveCartItem implements ResolverInterface
             case DownloadableType::TYPE_DOWNLOADABLE:
                 $data = $this->setDownloadableRequestLinks($options, $data);
                 break;
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param Product $product
+     * @param array   $options
+     * @return DataObject
+     */
+    private function prepareAddItem(Product $product, array $options): DataObject
+    {
+        if (isset($options['product_option']['buy_request'])) {
+            $data = $this->getOptionsFromBuyRequest($product, $options);
+        } else {
+            $data = $this->getOptionsFromExtensions($product, $options);
         }
 
         $request = new DataObject();

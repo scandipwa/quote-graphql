@@ -63,6 +63,7 @@ input CartItemId {
 
 input ProductOptionInput {
     extension_attributes: ExtensionsAttributeInput
+    buy_request: String
 }
 
 input ExtensionsAttributeInput {
