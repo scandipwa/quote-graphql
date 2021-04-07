@@ -80,6 +80,7 @@ input ConfigurableItemOptionsInput {
 input CustomizableOptionsInput {
     option_id: String!
     option_value: String
+    option_filename: String
 }
 
 input DownloadableProductLinksInput {
