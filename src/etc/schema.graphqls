@@ -72,6 +72,7 @@ input ExtensionsAttributeInput {
     customizable_options_multi: [CustomizableOptionsInput]
     downloadable_product_links: [DownloadableProductLinksInput]
     bundle_options: [BundleOptionInput!]
+    grouped_product_options: [CustomizableOptionsInput]
 }
 
 input ConfigurableItemOptionsInput {
