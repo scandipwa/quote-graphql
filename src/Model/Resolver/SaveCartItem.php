@@ -346,7 +346,7 @@ class SaveCartItem implements ResolverInterface
         $quoteIdMask = $this->quoteIdMaskFactory->create();
         $this->quoteIdMaskResource->load($quoteIdMask, $guestCardId, 'masked_id');
 
-        return $quoteIdMask->getQuoteId();
+        return $quoteIdMask->getQuoteId() ?? '';
     }
 
     /**
