@@ -26,11 +26,14 @@ use Magento\InventoryInStorePickup\Model\SearchRequestBuilder;
 use Magento\InventoryInStorePickup\Model\GetPickupLocations;
 
 /**
- * Class SaveCartItem
+ * Class GetStores
  * @package ScandiPWA\QuoteGraphQl\Model\Resolver
  */
 class GetStores implements ResolverInterface
 {
+    /**
+     * Config path to radius value (In magento original class it's private)
+     */
     protected const SEARCH_RADIUS = 'carriers/instore/search_radius';
 
     /**
@@ -90,8 +93,7 @@ class GetStores implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    )
-    {
+    ) {
         if (!isset($args['search']) || !isset($args['country'])) {
             throw new GraphQlInputException(
                 __('Required parameter "search" or "country" is missing.')
