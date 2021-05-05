@@ -18,6 +18,7 @@ type Query {
     getOrderById(id: Int!): Order @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ExpandedOrderResolver") @doc(description: "The Sales Order query returns information about a Sales order")
     getBraintreeConfig: Braintree @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\BraintreeResolver")
     getCartDisplayConfig: CartDisplayConfig @doc(description: "Get cart display settings") @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\CartDisplayConfigResolver")
+    getStores(search: String, country: String): Stores @resolver(class: "ScandiPWA\\StoreInPickUp\\Model\\Resolver\\GetStores")
 }
 
 type Mutation {
@@ -121,6 +122,7 @@ input AddressInput {
     company: String
     street: [String]
     vat_id: String
+    extension_attributes: [AddressExtensionAttributes]
 }
 
 input EstimateShippingCostsAddress {
@@ -390,4 +392,25 @@ type CustomizableFieldValue {
     price: Float
     price_type: PriceTypeEnum
     sku: String
+}
+
+type Stores {
+    stores: [Store]
+}
+
+type Store {
+    city: String
+    country: String
+    description: String
+    name: String
+    phone: String
+    pickup_location_code: String
+    postcode: String
+    region: String
+    street: String
+}
+
+input AddressExtensionAttributes {
+    attribute_code: String
+    value: String
 }
