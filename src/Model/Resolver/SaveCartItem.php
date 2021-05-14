@@ -451,9 +451,10 @@ class SaveCartItem implements ResolverInterface
             return;
         }
 
+        $allowedBackorder = $stockItem->getBackorders();
         $fitsInStock = $qty <= $stockItem->getQty();
 
-        if (!$fitsInStock) {
+        if (!$fitsInStock && !$allowedBackorder) {
             throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
         }
 
@@ -486,7 +487,7 @@ class SaveCartItem implements ResolverInterface
 
         $qtyLeftInStock = $qtyWithReservation - $stockItemConfiguration->getMinQty();
 
-        $isInStock = bccomp((string) $qtyLeftInStock, (string) $qty, 4) >= 0;
+        $isInStock = bccomp((string) $qtyLeftInStock, (string) $qty, 4) >= 0 || $allowedBackorder;
         $isEnoughQty = (bool)$stockItemData[GetStockItemDataInterface::IS_SALABLE] && $isInStock;
 
         if (!$isEnoughQty) {
