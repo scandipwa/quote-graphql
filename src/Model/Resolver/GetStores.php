@@ -16,6 +16,7 @@ namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Exception;
 use Magento\Directory\Model\CountryFactory;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
@@ -25,11 +26,16 @@ use Magento\InventoryInStorePickup\Model\SearchRequestBuilder;
 use Magento\InventoryInStorePickup\Model\GetPickupLocations;
 
 /**
- * Class SaveCartItem
+ * Class GetStores
  * @package ScandiPWA\QuoteGraphQl\Model\Resolver
  */
 class GetStores implements ResolverInterface
 {
+    /**
+     * Config path to radius value (In magento original class it's private)
+     */
+    protected const SEARCH_RADIUS = 'carriers/instore/search_radius';
+
     /**
      * @var SearchRequestBuilder
      */
@@ -46,20 +52,28 @@ class GetStores implements ResolverInterface
     protected $countryFactory;
 
     /**
+     * @var ScopeConfigInterface
+     */
+    protected $scopeConfig;
+
+    /**
      * GetStores constructor.
      * @param SearchRequestBuilder $searchRequest
      * @param GetPickupLocations $getPickupLocations
      * @param CountryFactory $countryFactory
+     * @param ScopeConfigInterface $scopeConfig
      */
     public function __construct(
         SearchRequestBuilder $searchRequest,
         GetPickupLocations $getPickupLocations,
-        CountryFactory $countryFactory
+        CountryFactory $countryFactory,
+        ScopeConfigInterface $scopeConfig
     ) {
 
         $this->searchRequest = $searchRequest;
         $this->getPickupLocations = $getPickupLocations;
         $this->countryFactory = $countryFactory;
+        $this->scopeConfig = $scopeConfig;
     }
 
     /**
@@ -79,8 +93,7 @@ class GetStores implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    )
-    {
+    ) {
         if (!isset($args['search']) || !isset($args['country'])) {
             throw new GraphQlInputException(
                 __('Required parameter "search" or "country" is missing.')
@@ -95,7 +108,7 @@ class GetStores implements ResolverInterface
                 $args['search'],
                 $args['country']
             ))
-            ->setAreaRadius(200)
+            ->setAreaRadius($this->scopeConfig->getValue(self::SEARCH_RADIUS))
             ->setScopeCode('base')
             ->create();
         $searchResponse = $this->getPickupLocations->execute($searchRequest);

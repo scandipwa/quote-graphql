@@ -64,6 +64,7 @@ input CartItemId {
 
 input ProductOptionInput {
     extension_attributes: ExtensionsAttributeInput
+    buy_request: String
 }
 
 input ExtensionsAttributeInput {
@@ -72,6 +73,7 @@ input ExtensionsAttributeInput {
     customizable_options_multi: [CustomizableOptionsInput]
     downloadable_product_links: [DownloadableProductLinksInput]
     bundle_options: [BundleOptionInput!]
+    grouped_product_options: [CustomizableOptionsInput]
 }
 
 input ConfigurableItemOptionsInput {
@@ -82,6 +84,7 @@ input ConfigurableItemOptionsInput {
 input CustomizableOptionsInput {
     option_id: String!
     option_value: String
+    option_filename: String
 }
 
 input DownloadableProductLinksInput {
@@ -120,11 +123,6 @@ input AddressInput {
     street: [String]
     vat_id: String
     extension_attributes: [AddressExtensionAttributes]
-}
-
-input AddressExtensionAttributes {
-    attribute_code: String
-    value: String
 }
 
 input EstimateShippingCostsAddress {
@@ -410,4 +408,9 @@ type Store {
     postcode: String
     region: String
     street: String
+}
+
+input AddressExtensionAttributes {
+    attribute_code: String
+    value: String
 }

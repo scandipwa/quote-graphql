@@ -43,6 +43,7 @@ use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
 use Magento\InventoryReservationsApi\Model\GetReservationsQuantityInterface;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
 use Magento\Downloadable\Model\Product\Type as DownloadableType;
+use ScandiPWA\QuoteGraphQl\Helper\ImageUpload;
 
 /**
  * Class SaveCartItem
@@ -106,6 +107,11 @@ class SaveCartItem implements ResolverInterface
     private $getStockItemConfiguration;
 
     /**
+     * @var ImageUpload
+     */
+    private $imageUpload;
+
+    /**
      * SaveCartItem constructor.
      *
      * @param QuoteIdMaskFactory $quoteIdMaskFactory
@@ -116,6 +122,10 @@ class SaveCartItem implements ResolverInterface
      * @param QuoteIdMask $quoteIdMaskResource
      * @param Configurable $configurableType
      * @param StockStatusRepositoryInterface $stockStatusRepository
+     * @param GetStockItemDataInterface $getStockItemData
+     * @param GetReservationsQuantityInterface $getReservationsQuantity
+     * @param GetStockItemConfigurationInterface $getStockItemConfiguration
+     * @param ImageUpload $imageUpload
      */
     public function __construct(
         QuoteIdMaskFactory $quoteIdMaskFactory,
@@ -128,7 +138,8 @@ class SaveCartItem implements ResolverInterface
         StockStatusRepositoryInterface $stockStatusRepository,
         GetStockItemDataInterface $getStockItemData,
         GetReservationsQuantityInterface $getReservationsQuantity,
-        GetStockItemConfigurationInterface $getStockItemConfiguration
+        GetStockItemConfigurationInterface $getStockItemConfiguration,
+        ImageUpload $imageUpload
     ) {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteRepository = $quoteRepository;
@@ -141,6 +152,7 @@ class SaveCartItem implements ResolverInterface
         $this->getStockItemData = $getStockItemData;
         $this->getReservationsQuantity = $getReservationsQuantity;
         $this->getStockItemConfiguration = $getStockItemConfiguration;
+        $this->imageUpload = $imageUpload;
     }
 
     /**
@@ -162,12 +174,26 @@ class SaveCartItem implements ResolverInterface
     }
 
     /**
+     * @param string $request
      * @param Product $product
-     * @param array   $options
-     * @return DataObject
+     * @param array $options
+     * @return array
      */
-    private function prepareAddItem(Product $product, array $options): DataObject
-    {
+    private function getOptionsFromBuyRequest(Product $product, array $options) : array {
+        $request = $options['product_option']['buy_request'];
+        $data = json_decode($request, true);
+        $data['product'] = $product->getEntityId();
+        $data['qty'] = $options['quantity'];
+
+        return $data;
+    }
+
+    /**
+     * @param Product $product
+     * @param array $options
+     * @return array
+     */
+    private function getOptionsFromExtensions(Product $product, array $options) : array {
         $options = $this->prepareOptions($options);
         $data = [
             'product' => $product->getEntityId(),
@@ -187,6 +213,22 @@ class SaveCartItem implements ResolverInterface
             case DownloadableType::TYPE_DOWNLOADABLE:
                 $data = $this->setDownloadableRequestLinks($options, $data);
                 break;
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param Product $product
+     * @param array   $options
+     * @return DataObject
+     */
+    private function prepareAddItem(Product $product, array $options): DataObject
+    {
+        if (isset($options['product_option']['buy_request'])) {
+            $data = $this->getOptionsFromBuyRequest($product, $options);
+        } else {
+            $data = $this->getOptionsFromExtensions($product, $options);
         }
 
         $request = new DataObject();
@@ -304,7 +346,7 @@ class SaveCartItem implements ResolverInterface
         $quoteIdMask = $this->quoteIdMaskFactory->create();
         $this->quoteIdMaskResource->load($quoteIdMask, $guestCardId, 'masked_id');
 
-        return $quoteIdMask->getQuoteId();
+        return $quoteIdMask->getQuoteId() ?? '';
     }
 
     /**
@@ -377,6 +419,10 @@ class SaveCartItem implements ResolverInterface
             $quote = $this->quoteRepository->getActive($quoteId);
             $quote->setTotalsCollectedFlag(false)->collectTotals();
             $this->quoteRepository->save($quote);
+
+            // We need file upload logic exactly after new quote has arrived
+            // Otherwise magento gives us quote with empty prices
+            $this->imageUpload->processFileUpload($quote, $requestCartItem);
         }
 
         return [];
@@ -405,9 +451,10 @@ class SaveCartItem implements ResolverInterface
             return;
         }
 
+        $allowedBackorder = $stockItem->getBackorders();
         $fitsInStock = $qty <= $stockItem->getQty();
 
-        if (!$fitsInStock) {
+        if (!$fitsInStock && !$allowedBackorder) {
             throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
         }
 
@@ -440,7 +487,7 @@ class SaveCartItem implements ResolverInterface
 
         $qtyLeftInStock = $qtyWithReservation - $stockItemConfiguration->getMinQty();
 
-        $isInStock = bccomp((string) $qtyLeftInStock, (string) $qty, 4) >= 0;
+        $isInStock = bccomp((string) $qtyLeftInStock, (string) $qty, 4) >= 0 || $allowedBackorder;
         $isEnoughQty = (bool)$stockItemData[GetStockItemDataInterface::IS_SALABLE] && $isInStock;
 
         if (!$isEnoughQty) {
