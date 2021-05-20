@@ -18,7 +18,7 @@ type Query {
     getOrderById(id: Int!): Order @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ExpandedOrderResolver") @doc(description: "The Sales Order query returns information about a Sales order")
     getBraintreeConfig: Braintree @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\BraintreeResolver")
     getCartDisplayConfig: CartDisplayConfig @doc(description: "Get cart display settings") @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\CartDisplayConfigResolver")
-    getStores(search: String, country: String): Stores @resolver(class: "ScandiPWA\\StoreInPickUp\\Model\\Resolver\\GetStores")
+    getStores(search: String, country: String): Stores @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetStores")
 }
 
 type Mutation {
