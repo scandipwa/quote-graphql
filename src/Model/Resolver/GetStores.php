@@ -108,7 +108,7 @@ class GetStores implements ResolverInterface
                 $args['search'],
                 $args['country']
             ))
-            ->setAreaRadius($this->scopeConfig->getValue(self::SEARCH_RADIUS))
+            ->setAreaRadius((int)$this->scopeConfig->getValue(self::SEARCH_RADIUS))
             ->setScopeCode('base')
             ->create();
         $searchResponse = $this->getPickupLocations->execute($searchRequest);
