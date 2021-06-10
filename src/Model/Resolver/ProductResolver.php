@@ -23,6 +23,7 @@ use Magento\Sales\Model\Order\Item;
 use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 use ScandiPWA\Performance\Model\Resolver\ResolveInfoFieldsTrait;
 use ScandiPWA\CatalogGraphQl\Model\Resolver\Products\DataProvider\Product;
+use Magento\Catalog\Model\ResourceModel\Eav\AttributeFactory;
 
 /**
  * Retrieves the Product list in orders
@@ -52,22 +53,30 @@ class ProductResolver implements ResolverInterface
     protected $postProcessor;
 
     /**
+     * @var AttributeFactory
+     */
+    protected AttributeFactory $attributeFactory;
+
+    /**
      * ProductResolver constructor.
      * @param ProductRepository $productRepository
      * @param Product $productDataProvider
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param DataPostProcessor $postProcessor
+     * @param AttributeFactory $attributeFactory
      */
     public function __construct(
         ProductRepository $productRepository,
         Product $productDataProvider,
         SearchCriteriaBuilder $searchCriteriaBuilder,
-        DataPostProcessor $postProcessor
+        DataPostProcessor $postProcessor,
+        AttributeFactory $attributeFactory
     ) {
         $this->productRepository = $productRepository;
         $this->productDataProvider = $productDataProvider;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->postProcessor = $postProcessor;
+        $this->attributeFactory = $attributeFactory;
     }
 
     /**
@@ -116,8 +125,22 @@ class ProductResolver implements ResolverInterface
         $data = [];
 
         foreach ($value['products'] as $key => $item) {
+            $productId = $item->getProductId();
+
+            if (isset($productsData[$productId])) {
+                $productItem = $productsData[$productId];
+            } else {
+                // product was deleted, return the empty one
+                $productItem = [
+                    'name' => __('Missing product'),
+                    'entity_id' => $productId,
+                    'type_id' => 'simple',
+                    'model' => $this->attributeFactory->create()
+                ];
+            }
+
             /** @var $item Item */
-            $data[$key] = $productsData[$item->getProductId()];
+            $data[$key] = $productItem;
             $data[$key]['qty'] = $item->getQtyOrdered();
             $data[$key]['row_total'] = $item->getRowTotalInclTax();
             $data[$key]['original_price'] = $item->getOriginalPrice();
