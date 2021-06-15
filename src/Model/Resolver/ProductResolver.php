@@ -30,6 +30,16 @@ use Magento\Catalog\Model\ResourceModel\Eav\AttributeFactory;
  */
 class ProductResolver implements ResolverInterface
 {
+    /**
+     * @var string PLACEHOLDER_SMALL_IMAGE Small image placeholder path
+     */
+    const PLACEHOLDER_SMALL_IMAGE = '/media/catalog/product/placeholder/small_image.jpg';
+
+    /**
+     * @var string PLACEHOLDER_THUMBNAIL Thumbnail placeholder path
+     */
+    const PLACEHOLDER_THUMBNAIL = '/media/catalog/product/placeholder/thumbnail.jpg';
+
     use ResolveInfoFieldsTrait;
 
     /**
@@ -131,12 +141,7 @@ class ProductResolver implements ResolverInterface
                 $productItem = $productsData[$productId];
             } else {
                 // product was deleted, return the empty one
-                $productItem = [
-                    'name' => __('Missing product'),
-                    'entity_id' => $productId,
-                    'type_id' => 'simple',
-                    'model' => $this->attributeFactory->create()
-                ];
+                $productItem = $this->getEmptyProductItem($item);
             }
 
             /** @var $item Item */
@@ -148,5 +153,29 @@ class ProductResolver implements ResolverInterface
         }
 
         return $data;
+    }
+
+    /**
+     * Get empty product item
+     * @param Item $item
+     * @return array
+     */
+    protected function getEmptyProductItem(Item $item) {
+        return [
+            'name' => $item->getName(),
+            'entity_id' => $item->getProductId(),
+            'type_id' => 'simple',
+            'model' => $this->attributeFactory->create(),
+            'small_image' => [
+                'path' => '',
+                'label' => '',
+                'url' => self::PLACEHOLDER_SMALL_IMAGE
+            ],
+            'thumbnail' => [
+                'path' => '',
+                'label' => '',
+                'url' => self::PLACEHOLDER_THUMBNAIL
+            ]
+        ];
     }
 }
