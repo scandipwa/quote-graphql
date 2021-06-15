@@ -30,8 +30,14 @@ use Magento\Catalog\Model\ResourceModel\Eav\AttributeFactory;
  */
 class ProductResolver implements ResolverInterface
 {
+    /**
+     * @var string PLACEHOLDER_SMALL_IMAGE Small image placeholder path
+     */
     const PLACEHOLDER_SMALL_IMAGE = '/media/catalog/product/placeholder/small_image.jpg';
 
+    /**
+     * @var string PLACEHOLDER_THUMBNAIL Thumbnail placeholder path
+     */
     const PLACEHOLDER_THUMBNAIL = '/media/catalog/product/placeholder/thumbnail.jpg';
 
     use ResolveInfoFieldsTrait;
