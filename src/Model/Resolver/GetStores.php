@@ -134,7 +134,7 @@ class GetStores implements ResolverInterface
             $postCodes = $this->postCodesConfig->getPostCodes();
 
             if (!isset($postCodes[$country])) {
-                throw new GraphQlInputException(__('Provided country '));
+                throw new GraphQlInputException(__('No in-delivery support for provided country. Please select another country.'));
             }
 
             $searchRequest = $this->getStoresBySearch($search, $country);
