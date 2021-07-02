@@ -15,31 +15,24 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\App\Area;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Catalog\Model\ProductRepository;
 use Magento\Sales\Model\Order\Item;
+use Magento\Store\Model\App\Emulation;
 use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 use ScandiPWA\Performance\Model\Resolver\ResolveInfoFieldsTrait;
 use ScandiPWA\CatalogGraphQl\Model\Resolver\Products\DataProvider\Product;
 use Magento\Catalog\Model\ResourceModel\Eav\AttributeFactory;
+use Magento\Catalog\Helper\Image as HelperImage;
 
 /**
  * Retrieves the Product list in orders
  */
 class ProductResolver implements ResolverInterface
 {
-    /**
-     * @var string PLACEHOLDER_SMALL_IMAGE Small image placeholder path
-     */
-    const PLACEHOLDER_SMALL_IMAGE = '/media/catalog/product/placeholder/small_image.jpg';
-
-    /**
-     * @var string PLACEHOLDER_THUMBNAIL Thumbnail placeholder path
-     */
-    const PLACEHOLDER_THUMBNAIL = '/media/catalog/product/placeholder/thumbnail.jpg';
-
     use ResolveInfoFieldsTrait;
 
     /**
@@ -68,25 +61,41 @@ class ProductResolver implements ResolverInterface
     protected AttributeFactory $attributeFactory;
 
     /**
+     * @var Emulation
+     */
+    protected $emulation;
+
+    /**
+     * @var HelperImage
+     */
+    protected $helperImage;
+
+    /**
      * ProductResolver constructor.
      * @param ProductRepository $productRepository
      * @param Product $productDataProvider
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param DataPostProcessor $postProcessor
      * @param AttributeFactory $attributeFactory
+     * @param Emulation $emulation
+     * @param HelperImage $helperImage
      */
     public function __construct(
         ProductRepository $productRepository,
         Product $productDataProvider,
         SearchCriteriaBuilder $searchCriteriaBuilder,
         DataPostProcessor $postProcessor,
-        AttributeFactory $attributeFactory
+        AttributeFactory $attributeFactory,
+        Emulation $emulation,
+        HelperImage $helperImage
     ) {
         $this->productRepository = $productRepository;
         $this->productDataProvider = $productDataProvider;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->postProcessor = $postProcessor;
         $this->attributeFactory = $attributeFactory;
+        $this->emulation = $emulation;
+        $this->helperImage = $helperImage;
     }
 
     /**
@@ -160,22 +169,37 @@ class ProductResolver implements ResolverInterface
      * @param Item $item
      * @return array
      */
-    protected function getEmptyProductItem(Item $item) {
-        return [
+    protected function getEmptyProductItem(Item $item): array
+    {
+        $this->emulation->startEnvironmentEmulation(
+            (int)$item->getStoreId(),
+            Area::AREA_FRONTEND,
+            true);
+
+        $result = [
             'name' => $item->getName(),
             'entity_id' => $item->getProductId(),
             'type_id' => 'simple',
             'model' => $this->attributeFactory->create(),
+            'image' => [
+                'path' => '',
+                'label' => '',
+                'url' => $this->helperImage->getDefaultPlaceholderUrl('image')
+            ],
             'small_image' => [
                 'path' => '',
                 'label' => '',
-                'url' => self::PLACEHOLDER_SMALL_IMAGE
+                'url' => $this->helperImage->getDefaultPlaceholderUrl('small_image')
             ],
             'thumbnail' => [
                 'path' => '',
                 'label' => '',
-                'url' => self::PLACEHOLDER_THUMBNAIL
+                'url' => $this->helperImage->getDefaultPlaceholderUrl('thumbnail')
             ]
         ];
+
+        $this->emulation->stopEnvironmentEmulation();
+
+        return $result;
     }
 }
