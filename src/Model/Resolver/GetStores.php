@@ -15,15 +15,23 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Exception;
+use Magento\Directory\Model\Country\Postcode\ConfigInterface;
 use Magento\Directory\Model\CountryFactory;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Config\Element\Field;
+use Magento\Framework\GraphQl\Exception\GraphQlInputException;
+use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
+use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
-use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
-use Magento\InventoryInStorePickup\Model\SearchRequestBuilder;
 use Magento\InventoryInStorePickup\Model\GetPickupLocations;
+use Magento\InventoryInStorePickupApi\Api\Data\SearchRequestInterface;
+use Magento\InventoryInStorePickupApi\Model\SearchRequestBuilderInterface;
+use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
+use Magento\Store\Model\StoreManagerInterface;
 
 /**
  * Class GetStores
@@ -37,7 +45,7 @@ class GetStores implements ResolverInterface
     protected const SEARCH_RADIUS = 'carriers/instore/search_radius';
 
     /**
-     * @var SearchRequestBuilder
+     * @var SearchRequestBuilderInterface
      */
     protected $searchRequest;
 
@@ -57,23 +65,38 @@ class GetStores implements ResolverInterface
     protected $scopeConfig;
 
     /**
+     * @var StoreManagerInterface
+     */
+    protected  $storeManager;
+
+    /**
+     * @var ConfigInterface
+     */
+    protected $postCodesConfig;
+
+    /**
      * GetStores constructor.
-     * @param SearchRequestBuilder $searchRequest
+     * @param SearchRequestBuilderInterface $searchRequest
      * @param GetPickupLocations $getPickupLocations
      * @param CountryFactory $countryFactory
      * @param ScopeConfigInterface $scopeConfig
+     * @param StoreManagerInterface $storeManager
+     * @param ConfigInterface $postCodesConfig
      */
     public function __construct(
-        SearchRequestBuilder $searchRequest,
+        SearchRequestBuilderInterface $searchRequest,
         GetPickupLocations $getPickupLocations,
         CountryFactory $countryFactory,
-        ScopeConfigInterface $scopeConfig
+        ScopeConfigInterface $scopeConfig,
+        StoreManagerInterface $storeManager,
+        ConfigInterface $postCodesConfig
     ) {
-
         $this->searchRequest = $searchRequest;
         $this->getPickupLocations = $getPickupLocations;
         $this->countryFactory = $countryFactory;
         $this->scopeConfig = $scopeConfig;
+        $this->storeManager = $storeManager;
+        $this->postCodesConfig = $postCodesConfig;
     }
 
     /**
@@ -94,7 +117,10 @@ class GetStores implements ResolverInterface
         array $value = null,
         array $args = null
     ) {
-        if (!isset($args['search']) || !isset($args['country'])) {
+        $search = $args['search'];
+        $country = $args['country'];
+
+        if (!isset($search) || !isset($country)) {
             throw new GraphQlInputException(
                 __('Required parameter "search" or "country" is missing.')
             );
@@ -102,16 +128,23 @@ class GetStores implements ResolverInterface
 
         $result = [];
 
-        $searchRequest = $this->searchRequest
-            ->setAreaSearchTerm(sprintf(
-                '%s:%s',
-                $args['search'],
-                $args['country']
-            ))
-            ->setAreaRadius((int) $this->scopeConfig->getValue(self::SEARCH_RADIUS))
-            ->setScopeCode('base')
-            ->create();
-        $searchResponse = $this->getPickupLocations->execute($searchRequest);
+        if($args['search'] === '') {
+            $searchRequest = $this->getAllStores();
+        } else {
+            $postCodes = $this->postCodesConfig->getPostCodes();
+
+            if (!isset($postCodes[$country])) {
+                throw new GraphQlInputException(__('No in-delivery support for provided country. Please select another country.'));
+            }
+
+            $searchRequest = $this->getStoresBySearch($search, $country);
+        }
+
+        try {
+            $searchResponse = $this->getPickupLocations->execute($searchRequest);
+        } catch (NoSuchEntityException $e) {
+            throw new GraphQlNoSuchEntityException(__($e->getMessage()), $e);
+        }
 
         foreach ($searchResponse->getItems() as $item) {
             $result[] = [
@@ -128,5 +161,40 @@ class GetStores implements ResolverInterface
         }
 
         return ['stores' => $result];
+    }
+
+    /**
+     * @return SearchRequestInterface
+     * @throws LocalizedException
+     */
+    public function getAllStores() {
+        $searchRequest = $this->searchRequest
+            ->setScopeType(SalesChannelInterface::TYPE_WEBSITE)
+            ->setScopeCode($this->storeManager->getWebsite()->getCode())
+            ->setPageSize(1)
+            ->create();
+
+        return $searchRequest;
+    }
+
+    /**
+     * @param $search
+     * @param $country
+     * @return SearchRequestInterface
+     * @throws LocalizedException
+     */
+    public function getStoresBySearch($search, $country) {
+        $searchRequest = $this->searchRequest
+            ->setScopeType(SalesChannelInterface::TYPE_WEBSITE)
+            ->setAreaSearchTerm(sprintf(
+                '%s:%s',
+                $search,
+                $country
+            ))
+            ->setScopeCode($this->storeManager->getWebsite()->getCode())
+            ->setAreaRadius((int) $this->scopeConfig->getValue(self::SEARCH_RADIUS))
+            ->create();
+
+        return $searchRequest;
     }
 }
