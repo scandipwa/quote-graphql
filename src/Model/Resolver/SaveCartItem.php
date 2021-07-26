@@ -36,12 +36,12 @@ use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
 use Magento\Bundle\Model\Product\Type;
 use Magento\Framework\DataObject;
 use Magento\Catalog\Model\Product\Attribute\Repository;
-use Magento\CatalogInventory\Api\StockStatusRepositoryInterface;
 use Magento\Quote\Api\Data\CartItemInterface;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
+use Magento\InventorySalesApi\Api\IsProductSalableForRequestedQtyInterface;
 use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
-use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
 use Magento\InventoryReservationsApi\Model\GetReservationsQuantityInterface;
-use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
 use Magento\Downloadable\Model\Product\Type as DownloadableType;
 use ScandiPWA\QuoteGraphQl\Helper\ImageUpload;
 
@@ -87,24 +87,19 @@ class SaveCartItem implements ResolverInterface
     protected $configurableType;
 
     /**
-     * @var StockStatusRepositoryInterface
+     * @var StockByWebsiteIdResolverInterface
      */
-    protected $stockStatusRepository;
+    private $stockByWebsiteId;
 
     /**
-     * @var GetStockItemDataInterface
+     * @var IsProductSalableForRequestedQtyInterface
      */
-    private $getStockItemData;
+    private $isProductSalableForRequestedQty;
 
     /**
-     * @var GetReservationsQuantityInterface
+     * @var StoreManagerInterface
      */
-    private $getReservationsQuantity;
-
-    /**
-     * @var GetStockItemConfigurationInterface
-     */
-    private $getStockItemConfiguration;
+    private $storeManager;
 
     /**
      * @var ImageUpload
@@ -121,10 +116,9 @@ class SaveCartItem implements ResolverInterface
      * @param Repository $attributeRepository
      * @param QuoteIdMask $quoteIdMaskResource
      * @param Configurable $configurableType
-     * @param StockStatusRepositoryInterface $stockStatusRepository
-     * @param GetStockItemDataInterface $getStockItemData
-     * @param GetReservationsQuantityInterface $getReservationsQuantity
-     * @param GetStockItemConfigurationInterface $getStockItemConfiguration
+     * @param StockItemConfigurationInterfac $stockByWebsiteId
+     * @param IsProductSalableForRequestedQtyInterface $isProductSalableForRequestedQty
+     * @param StoreManagerInterface $storeManager
      * @param ImageUpload $imageUpload
      */
     public function __construct(
@@ -135,10 +129,9 @@ class SaveCartItem implements ResolverInterface
         Repository $attributeRepository,
         QuoteIdMask $quoteIdMaskResource,
         Configurable $configurableType,
-        StockStatusRepositoryInterface $stockStatusRepository,
-        GetStockItemDataInterface $getStockItemData,
-        GetReservationsQuantityInterface $getReservationsQuantity,
-        GetStockItemConfigurationInterface $getStockItemConfiguration,
+	StockByWebsiteIdResolverInterface $stockByWebsiteId,
+	IsProductSalableForRequestedQtyInterface $isProductSalableForRequestedQty,
+        StoreManagerInterface $storeManager,	
         ImageUpload $imageUpload
     ) {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
@@ -147,11 +140,10 @@ class SaveCartItem implements ResolverInterface
         $this->productRepository = $productRepository;
         $this->attributeRepository = $attributeRepository;
         $this->quoteIdMaskResource = $quoteIdMaskResource;
-        $this->configurableType = $configurableType;
-        $this->stockStatusRepository = $stockStatusRepository;
-        $this->getStockItemData = $getStockItemData;
-        $this->getReservationsQuantity = $getReservationsQuantity;
-        $this->getStockItemConfiguration = $getStockItemConfiguration;
+	$this->configurableType = $configurableType;
+	$this->stockByWebsiteId = $stockByWebsiteId;
+	$this->isProductSalableForRequestedQty = $isProductSalableForRequestedQty;
+        $this->storeManager = $storeManager;
         $this->imageUpload = $imageUpload;
     }
 
@@ -443,55 +435,10 @@ class SaveCartItem implements ResolverInterface
             $attributesInfo = $cartItem->getBuyRequest()->getDataByKey('super_attribute');
             $product = $this->configurableType->getProductByAttributes($attributesInfo, $product);
         }
-
-        $stockStatus = $this->stockStatusRepository->get($product->getId());
-        $stockItem = $stockStatus->getStockItem();
-
-        if (!$stockItem->getManageStock()) { // just skip all checks, if stock is not managed
-            return;
-        }
-
-        $allowedBackorder = $stockItem->getBackorders();
-        $fitsInStock = $qty <= $stockItem->getQty();
-
-        if (!$fitsInStock && !$allowedBackorder) {
+	$stock = $this->stockByWebsiteId->execute((int)$this->storeManager->getStore()->getId());
+	$fitsInStock = $this->isProductSalableForRequestedQty->execute($product->getSku(), (int)$stock->getId(), $qty);
+        if (!$fitsInStock) {
             throw new GraphQlInputException(new Phrase('Provided quantity exceeds stock limits'));
-        }
-
-        $isMinSaleQuantityCheckFailed = $qty < $stockItem->getMinSaleQty();
-
-        if ($isMinSaleQuantityCheckFailed) {
-            throw new GraphQlInputException(
-                new Phrase('The fewest you may purchase is %1', [$stockItem->getMinSaleQty()])
-            );
-        }
-
-        $isMaxSaleQuantityCheckFailed = $qty > $stockItem->getMaxSaleQty();
-
-        if ($isMaxSaleQuantityCheckFailed) {
-            throw new GraphQlInputException(
-                new Phrase('The requested qty exceeds the maximum qty allowed in shopping cart')
-            );
-        }
-
-        $stockId = $stockItem->getStockId();
-        $sku = $product->getSku();
-
-        $stockItemData = $this->getStockItemData->execute($sku, $stockId);
-
-        /** @var StockItemConfigurationInterface $stockItemConfiguration */
-        $stockItemConfiguration = $this->getStockItemConfiguration->execute($sku, $stockId);
-
-        $qtyWithReservation = $stockItemData[GetStockItemDataInterface::QUANTITY] +
-            $this->getReservationsQuantity->execute($sku, $stockId);
-
-        $qtyLeftInStock = $qtyWithReservation - $stockItemConfiguration->getMinQty();
-
-        $isInStock = bccomp((string) $qtyLeftInStock, (string) $qty, 4) >= 0 || $allowedBackorder;
-        $isEnoughQty = (bool)$stockItemData[GetStockItemDataInterface::IS_SALABLE] && $isInStock;
-
-        if (!$isEnoughQty) {
-            throw new GraphQlInputException(new Phrase('The requested quantity is not available'));
         }
     }
 
