@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Exception;
+use Magento\Bundle\Model\Product\Type as Bundle;
 use Magento\Catalog\Model\Product\Type as ProductType;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\GraphQl\Config\Element\Field;
@@ -44,6 +45,7 @@ use Magento\InventoryReservationsApi\Model\GetReservationsQuantityInterface;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
 use Magento\Downloadable\Model\Product\Type as DownloadableType;
 use ScandiPWA\QuoteGraphQl\Helper\ImageUpload;
+use Magento\QuoteGraphQl\Model\Cart\UpdateCartItem;
 
 /**
  * Class SaveCartItem
@@ -92,6 +94,11 @@ class SaveCartItem implements ResolverInterface
     protected $stockStatusRepository;
 
     /**
+     * @var UpdateCartItem
+     */
+    protected $updateCartItem;
+
+    /**
      * @var GetStockItemDataInterface
      */
     private $getStockItemData;
@@ -126,6 +133,7 @@ class SaveCartItem implements ResolverInterface
      * @param GetReservationsQuantityInterface $getReservationsQuantity
      * @param GetStockItemConfigurationInterface $getStockItemConfiguration
      * @param ImageUpload $imageUpload
+     * @param UpdateCartItem $updateCartItem
      */
     public function __construct(
         QuoteIdMaskFactory $quoteIdMaskFactory,
@@ -139,7 +147,8 @@ class SaveCartItem implements ResolverInterface
         GetStockItemDataInterface $getStockItemData,
         GetReservationsQuantityInterface $getReservationsQuantity,
         GetStockItemConfigurationInterface $getStockItemConfiguration,
-        ImageUpload $imageUpload
+        ImageUpload $imageUpload,
+        UpdateCartItem $updateCartItem
     ) {
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteRepository = $quoteRepository;
@@ -153,6 +162,7 @@ class SaveCartItem implements ResolverInterface
         $this->getReservationsQuantity = $getReservationsQuantity;
         $this->getStockItemConfiguration = $getStockItemConfiguration;
         $this->imageUpload = $imageUpload;
+        $this->updateCartItem = $updateCartItem;
     }
 
     /**
@@ -382,9 +392,15 @@ class SaveCartItem implements ResolverInterface
 
         if ($itemId) {
             $cartItem = $quote->getItemById($itemId);
-            $this->checkItemQty($cartItem, $qty);
+            $product = $cartItem->getProduct();
 
-            $cartItem->setQty($qty);
+            if ($product->getTypeId() === Bundle::TYPE_CODE) {
+                $this->updateCartItem->execute($quote, $itemId, $qty, []);
+            } else {
+                $this->checkItemQty($cartItem, $qty);
+                $cartItem->setQty($qty);
+            }
+
             $this->quoteRepository->save($quote);
         } else {
             $sku = $this->getSku($requestCartItem);
