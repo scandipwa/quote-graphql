@@ -221,6 +221,7 @@ class SaveCartItem implements ResolverInterface
                 $data = $this->setBundleRequestOptions($options, $data);
                 break;
             case DownloadableType::TYPE_DOWNLOADABLE:
+                $this->setCustomizableOptions($options, $data);
                 $data = $this->setDownloadableRequestLinks($options, $data);
                 break;
         }
