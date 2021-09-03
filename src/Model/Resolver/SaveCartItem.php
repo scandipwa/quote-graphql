@@ -394,8 +394,11 @@ class SaveCartItem implements ResolverInterface
         if ($itemId) {
             $cartItem = $quote->getItemById($itemId);
             $product = $cartItem->getProduct();
+            $options = $product->getTypeInstance(true)->getOrderOptions($product) ?? [];
 
-            if ($product->getTypeId() === Bundle::TYPE_CODE) {
+            if ($product->getData('has_options') && isset($options['options'])) {
+                $this->updateCartItem->execute($quote, $itemId, $qty, []);
+            } else  if ($product->getTypeId() === Bundle::TYPE_CODE) {
                 $this->updateCartItem->execute($quote, $itemId, $qty, []);
             } else {
                 $this->checkItemQty($cartItem, $qty);
