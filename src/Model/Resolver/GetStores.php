@@ -191,6 +191,7 @@ class GetStores implements ResolverInterface
                 $search,
                 $country
             ))
+            ->setPageSize(50)
             ->setScopeCode($this->storeManager->getWebsite()->getCode())
             ->setAreaRadius((int) $this->scopeConfig->getValue(self::SEARCH_RADIUS))
             ->create();
