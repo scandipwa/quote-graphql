@@ -171,7 +171,7 @@ class GetStores implements ResolverInterface
         $searchRequest = $this->searchRequest
             ->setScopeType(SalesChannelInterface::TYPE_WEBSITE)
             ->setScopeCode($this->storeManager->getWebsite()->getCode())
-            ->setPageSize(1)
+            ->setPageSize(50)
             ->create();
 
         return $searchRequest;
