@@ -41,5 +41,8 @@
             </argument>
         </arguments>
     </virtualType>
+    <preference for="Magento\Quote\Model\Quote\Item\Processor" type="ScandiPWA\QuoteGraphQl\Model\Quote\Item\Processor"/>
+    <preference for="Magento\QuoteBundleOptions\Model\Cart\BuyRequest\BundleDataProvider" type="ScandiPWA\QuoteGraphQl\Model\Cart\BuyRequest\BundleDataProvider"/>
+    <preference for="Magento\Bundle\Model\Product\Type" type="ScandiPWA\QuoteGraphQl\Model\Bundle\Type"/>
 </config>
 
