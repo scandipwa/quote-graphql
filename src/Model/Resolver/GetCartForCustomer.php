@@ -37,6 +37,7 @@ use \Magento\Quote\Api\Data\AddressInterface;
 use Magento\Tax\Model\Config;
 use Magento\Downloadable\Model\LinkRepository;
 use Magento\Downloadable\Model\Link;
+use Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface;
 
 class GetCartForCustomer extends CartResolver
 {
@@ -67,6 +68,9 @@ class GetCartForCustomer extends CartResolver
     /** @var LinkRepository */
     protected $linkRepository;
 
+    /** @var QuoteIdToMaskedQuoteIdInterface */
+    protected $quoteIdToMaskedQuoteId;
+
     /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
@@ -77,8 +81,10 @@ class GetCartForCustomer extends CartResolver
      * @param DataPostProcessor $productPostProcessor
      * @param CustomizableOption $customizableOption
      * @param BundleOptionDataProvider $bundleOptions
+     * @param Json $serializer
      * @param Config $config
      * @param LinkRepository $linkRepository
+     * @param QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -91,7 +97,8 @@ class GetCartForCustomer extends CartResolver
         BundleOptionDataProvider $bundleOptions,
         Json $serializer,
         Config $config,
-        LinkRepository $linkRepository
+        LinkRepository $linkRepository,
+        QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -107,6 +114,7 @@ class GetCartForCustomer extends CartResolver
         $this->serializer = $serializer;
         $this->config = $config;
         $this->linkRepository = $linkRepository;
+        $this->quoteIdToMaskedQuoteId = $quoteIdToMaskedQuoteId;
     }
 
     /**
@@ -256,10 +264,12 @@ class GetCartForCustomer extends CartResolver
         $shipping_amount = $address->getShippingAmount();
         $shipping_incl_tax = $address->getShippingInclTax();
         $shipping_method = $address->getShippingMethod();
+        $masked_id = $this->quoteIdToMaskedQuoteId->execute(intval($cart->getId()));
 
         return array_merge(
             $cartData,
             [
+                'id' => $masked_id,
                 'items' => $itemsData,
                 'tax_amount' => $tax_amount,
                 'subtotal_incl_tax' => $subtotal_incl_tax,

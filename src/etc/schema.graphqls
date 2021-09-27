@@ -153,6 +153,7 @@ type Braintree {
 }
 
 type QuoteData implements TotalsObject  {
+    id: String
     is_virtual: Boolean
     applied_taxes: [AppliedTaxItem]
 }
