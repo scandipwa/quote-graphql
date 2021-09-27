@@ -171,7 +171,7 @@ class GetStores implements ResolverInterface
         $searchRequest = $this->searchRequest
             ->setScopeType(SalesChannelInterface::TYPE_WEBSITE)
             ->setScopeCode($this->storeManager->getWebsite()->getCode())
-            ->setPageSize(1)
+            ->setPageSize(50)
             ->create();
 
         return $searchRequest;
@@ -191,6 +191,7 @@ class GetStores implements ResolverInterface
                 $search,
                 $country
             ))
+            ->setPageSize(50)
             ->setScopeCode($this->storeManager->getWebsite()->getCode())
             ->setAreaRadius((int) $this->scopeConfig->getValue(self::SEARCH_RADIUS))
             ->create();

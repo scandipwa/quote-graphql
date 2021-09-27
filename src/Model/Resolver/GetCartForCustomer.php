@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Magento\Catalog\Model\Product;
+use Magento\InventoryInStorePickupShippingApi\Model\IsInStorePickupDeliveryAvailableForCartInterface;
 use Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable;
 use Magento\Catalog\Model\ProductFactory;
 use Magento\Framework\Exception\LocalizedException;
@@ -34,7 +35,6 @@ use Magento\BundleGraphQl\Model\Cart\BundleOptionDataProvider;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 use \Magento\Quote\Api\Data\AddressInterface;
-use Magento\Tax\Model\Config;
 use Magento\Downloadable\Model\LinkRepository;
 use Magento\Downloadable\Model\Link;
 use Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface;
@@ -62,14 +62,14 @@ class GetCartForCustomer extends CartResolver
     /** @var Json */
     private $serializer;
 
-    /** @var Config */
-    private $config;
-
     /** @var LinkRepository */
     protected $linkRepository;
 
     /** @var QuoteIdToMaskedQuoteIdInterface */
     protected $quoteIdToMaskedQuoteId;
+
+    /** @var IsInStorePickupDeliveryAvailableForCartInterface */
+    protected $inStorePickupDeliveryAvailableForCart;
 
     /**
      * GetCartForCustomer constructor.
@@ -85,6 +85,7 @@ class GetCartForCustomer extends CartResolver
      * @param Config $config
      * @param LinkRepository $linkRepository
      * @param QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId
+     * @param IsInStorePickupDeliveryAvailableForCartInterface $inStorePickupDeliveryAvailableForCart
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -98,7 +99,8 @@ class GetCartForCustomer extends CartResolver
         Json $serializer,
         Config $config,
         LinkRepository $linkRepository,
-        QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId
+        QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId,
+        IsInStorePickupDeliveryAvailableForCartInterface $inStorePickupDeliveryAvailableForCart
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -112,9 +114,9 @@ class GetCartForCustomer extends CartResolver
         $this->customizableOption = $customizableOption;
         $this->bundleOptions = $bundleOptions;
         $this->serializer = $serializer;
-        $this->config = $config;
         $this->linkRepository = $linkRepository;
         $this->quoteIdToMaskedQuoteId = $quoteIdToMaskedQuoteId;
+        $this->inStorePickupDeliveryAvailableForCart = $inStorePickupDeliveryAvailableForCart;
     }
 
     /**
@@ -265,6 +267,7 @@ class GetCartForCustomer extends CartResolver
         $shipping_incl_tax = $address->getShippingInclTax();
         $shipping_method = $address->getShippingMethod();
         $masked_id = $this->quoteIdToMaskedQuoteId->execute(intval($cart->getId()));
+        $isInStorePickupAvailable = $this->inStorePickupDeliveryAvailableForCart->execute((int) $cart->getId());
 
         return array_merge(
             $cartData,
@@ -280,7 +283,8 @@ class GetCartForCustomer extends CartResolver
                 'shipping_tax_amount' => $shipping_tax_amount,
                 'shipping_amount' => $shipping_amount,
                 'shipping_incl_tax' => $shipping_incl_tax,
-                'shipping_method' => $shipping_method
+                'shipping_method' => $shipping_method,
+                'is_in_store_pickup_available' => $isInStorePickupAvailable
             ]
         );
     }

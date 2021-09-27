@@ -203,6 +203,7 @@ interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\R
     base_currency_code: String
     quote_currency_code: String
     items: [TotalsItem]
+    is_in_store_pickup_available: Boolean
 }
 
 type TotalsItem {
