@@ -82,7 +82,6 @@ class GetCartForCustomer extends CartResolver
      * @param CustomizableOption $customizableOption
      * @param BundleOptionDataProvider $bundleOptions
      * @param Json $serializer
-     * @param Config $config
      * @param LinkRepository $linkRepository
      * @param QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId
      * @param IsInStorePickupDeliveryAvailableForCartInterface $inStorePickupDeliveryAvailableForCart
@@ -97,7 +96,6 @@ class GetCartForCustomer extends CartResolver
         CustomizableOption $customizableOption,
         BundleOptionDataProvider $bundleOptions,
         Json $serializer,
-        Config $config,
         LinkRepository $linkRepository,
         QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId,
         IsInStorePickupDeliveryAvailableForCartInterface $inStorePickupDeliveryAvailableForCart
