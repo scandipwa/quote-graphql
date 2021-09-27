@@ -37,6 +37,7 @@ use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 use \Magento\Quote\Api\Data\AddressInterface;
 use Magento\Downloadable\Model\LinkRepository;
 use Magento\Downloadable\Model\Link;
+use Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface;
 
 class GetCartForCustomer extends CartResolver
 {
@@ -64,6 +65,9 @@ class GetCartForCustomer extends CartResolver
     /** @var LinkRepository */
     protected $linkRepository;
 
+    /** @var QuoteIdToMaskedQuoteIdInterface */
+    protected $quoteIdToMaskedQuoteId;
+
     /** @var IsInStorePickupDeliveryAvailableForCartInterface */
     protected $inStorePickupDeliveryAvailableForCart;
 
@@ -77,7 +81,9 @@ class GetCartForCustomer extends CartResolver
      * @param DataPostProcessor $productPostProcessor
      * @param CustomizableOption $customizableOption
      * @param BundleOptionDataProvider $bundleOptions
+     * @param Json $serializer
      * @param LinkRepository $linkRepository
+     * @param QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId
      * @param IsInStorePickupDeliveryAvailableForCartInterface $inStorePickupDeliveryAvailableForCart
      */
     public function __construct(
@@ -91,6 +97,7 @@ class GetCartForCustomer extends CartResolver
         BundleOptionDataProvider $bundleOptions,
         Json $serializer,
         LinkRepository $linkRepository,
+        QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId,
         IsInStorePickupDeliveryAvailableForCartInterface $inStorePickupDeliveryAvailableForCart
     ) {
         parent::__construct(
@@ -106,6 +113,7 @@ class GetCartForCustomer extends CartResolver
         $this->bundleOptions = $bundleOptions;
         $this->serializer = $serializer;
         $this->linkRepository = $linkRepository;
+        $this->quoteIdToMaskedQuoteId = $quoteIdToMaskedQuoteId;
         $this->inStorePickupDeliveryAvailableForCart = $inStorePickupDeliveryAvailableForCart;
     }
 
@@ -256,11 +264,13 @@ class GetCartForCustomer extends CartResolver
         $shipping_amount = $address->getShippingAmount();
         $shipping_incl_tax = $address->getShippingInclTax();
         $shipping_method = $address->getShippingMethod();
+        $masked_id = $this->quoteIdToMaskedQuoteId->execute(intval($cart->getId()));
         $isInStorePickupAvailable = $this->inStorePickupDeliveryAvailableForCart->execute((int) $cart->getId());
 
         return array_merge(
             $cartData,
             [
+                'id' => $masked_id,
                 'items' => $itemsData,
                 'tax_amount' => $tax_amount,
                 'subtotal_incl_tax' => $subtotal_incl_tax,
