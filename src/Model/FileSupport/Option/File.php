@@ -20,6 +20,14 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\App\ObjectManager;
 use Magento\Catalog\Model\Product\Option\Type\File as SourceFile;
+use Magento\Checkout\Model\Session;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Quote\Model\Quote\Item\OptionFactory;
+use Magento\MediaStorage\Helper\File\Storage\Database;
+use Magento\Catalog\Model\Product\Option\UrlBuilder;
+use Magento\Framework\Escaper;
+use Magento\Catalog\Model\Product\Option\Type\File\ValidatorInfo;
+use Magento\Catalog\Model\Product\Option\Type\File\ValidatorFile;
 
 class File extends SourceFile
 {
@@ -29,14 +37,14 @@ class File extends SourceFile
     protected $serializer;
 
     public function __construct(
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Quote\Model\Quote\Item\OptionFactory $itemOptionFactory,
-        \Magento\MediaStorage\Helper\File\Storage\Database $coreFileStorageDatabase,
-        SourceFile\ValidatorInfo $validatorInfo,
-        SourceFile\ValidatorFile $validatorFile,
-        \Magento\Catalog\Model\Product\Option\UrlBuilder $urlBuilder,
-        \Magento\Framework\Escaper $escaper,
+        Session $checkoutSession,
+        ScopeConfigInterface $scopeConfig,
+        OptionFactory $itemOptionFactory,
+        Database $coreFileStorageDatabase,
+        ValidatorInfo $validatorInfo,
+        ValidatorFile $validatorFile,
+        UrlBuilder $urlBuilder,
+        Escaper $escaper,
         array $data = [],
         Filesystem $filesystem = null,
         Json $serializer = null,
@@ -73,6 +81,7 @@ class File extends SourceFile
 
         // Prepare value and fill buyRequest with option
         $requestOptions = $buyRequest->getOptions();
+
         if ($this->getIsValid() && $this->getUserValue() !== null) {
             $value = $this->getUserValue();
 

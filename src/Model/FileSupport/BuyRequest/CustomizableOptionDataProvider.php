@@ -59,9 +59,11 @@ class CustomizableOptionDataProvider implements BuyRequestDataProviderInterface
             if ($this->isProviderApplicable($optionData) === false) {
                 continue;
             }
+
             $this->validateInput($optionData);
 
             [$optionType, $optionId, $optionValue] = $optionData;
+
             if ($optionType == self::OPTION_TYPE) {
                 $customizableOptionsData[$optionId][] = $optionValue;
             }
@@ -76,6 +78,7 @@ class CustomizableOptionDataProvider implements BuyRequestDataProviderInterface
             }
 
             [$optionType, $optionId] = $optionData;
+
             // -- File Upload Suppor --
             $fileData = $this->getFileData($option->getUid(), $option->getValue());
             if ($optionType == self::OPTION_TYPE) {
@@ -91,12 +94,14 @@ class CustomizableOptionDataProvider implements BuyRequestDataProviderInterface
         }
 
         $output = ['options' => $this->flattenOptionValues($customizableOptionsData)];
+
         return $output;
     }
 
     private function getFileData($uid, $optionData) {
         try {
             $data = json_decode($optionData, true);
+
             if (!is_array($data)) {
                 return false;
             }
@@ -105,6 +110,7 @@ class CustomizableOptionDataProvider implements BuyRequestDataProviderInterface
             $filedata = $data['file_data'];
 
             $insidePath = $uid . '/_/' . $filename;
+
             if (!$filename || !$filedata) {
                 return false;
             }
@@ -155,7 +161,7 @@ class CustomizableOptionDataProvider implements BuyRequestDataProviderInterface
      * @param array $customizableOptionsData
      * @return array
      */
-    private function flattenOptionValues(array $customizableOptionsData): array
+    protected function flattenOptionValues(array $customizableOptionsData): array
     {
         foreach ($customizableOptionsData as $optionId => $optionValue) {
             if (count($optionValue) === 1) {
@@ -172,7 +178,7 @@ class CustomizableOptionDataProvider implements BuyRequestDataProviderInterface
      * @param array $optionData
      * @return bool
      */
-    private function isProviderApplicable(array $optionData): bool
+    protected function isProviderApplicable(array $optionData): bool
     {
         if ($optionData[0] !== self::OPTION_TYPE) {
             return false;
@@ -187,7 +193,7 @@ class CustomizableOptionDataProvider implements BuyRequestDataProviderInterface
      * @param array $optionData
      * @throws LocalizedException
      */
-    private function validateInput(array $optionData): void
+    protected function validateInput(array $optionData): void
     {
         if (count($optionData) !== 3) {
             throw new LocalizedException(
