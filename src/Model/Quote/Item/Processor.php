@@ -37,7 +37,7 @@ class Processor extends SourceProcessor
         if ($request->getResetCount() && !$candidate->getStickWithinParent() && $item->getId() == $request->getId()) {
             $item->setData(CartItemInterface::KEY_QTY, 0);
         }
-        $item->setQty($candidate->getCartQty());
+        $item->addQty($candidate->getCartQty());
 
         if (!$item->getParentItem() || $item->getParentItem()->isChildrenCalculated()) {
             $item->setPrice($candidate->getFinalPrice());
