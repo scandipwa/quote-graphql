@@ -129,7 +129,6 @@ class GetStores implements ResolverInterface
         $search = $args['search'];
         $country = $args['country'];
 
-
         if (!isset($search) || !isset($country)) {
             throw new GraphQlInputException(
                 __('Required parameter "search" or "country" is missing.')
