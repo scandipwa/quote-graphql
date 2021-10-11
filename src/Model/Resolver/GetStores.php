@@ -138,7 +138,7 @@ class GetStores implements ResolverInterface
 
         $result = [];
 
-        if($args['search'] === '') {
+        if($search === '') {
             $searchRequest = $this->getAllStores($args);
         } else {
             $postCodes = $this->postCodesConfig->getPostCodes();
@@ -177,12 +177,12 @@ class GetStores implements ResolverInterface
      * @return SearchRequestInterface
      * @throws LocalizedException
      */
-    public function getAllStores($productsInformation) {
+    public function getAllStores($args) {
         $searchRequest = $this->searchRequest
             ->setScopeType(SalesChannelInterface::TYPE_WEBSITE)
             ->setScopeCode($this->storeManager->getWebsite()->getCode())
             ->setPageSize(50)
-            ->setSearchRequestExtension($this->extensionProvider->getExtensionAttributes($productsInformation))
+            ->setSearchRequestExtension($this->extensionProvider->getExtensionAttributes($args))
             ->create();
 
         return $searchRequest;
@@ -194,7 +194,7 @@ class GetStores implements ResolverInterface
      * @return SearchRequestInterface
      * @throws LocalizedException
      */
-    public function getStoresBySearch($search, $country, $productsInformation) {
+    public function getStoresBySearch($search, $country, $args) {
         $searchRequest = $this->searchRequest
             ->setScopeType(SalesChannelInterface::TYPE_WEBSITE)
             ->setAreaSearchTerm(sprintf(
@@ -205,7 +205,7 @@ class GetStores implements ResolverInterface
             ->setPageSize(50)
             ->setScopeCode($this->storeManager->getWebsite()->getCode())
             ->setAreaRadius((int) $this->scopeConfig->getValue(self::SEARCH_RADIUS))
-            ->setSearchRequestExtension($this->extensionProvider->getExtensionAttributes($productsInformation))
+            ->setSearchRequestExtension($this->extensionProvider->getExtensionAttributes($args))
             ->create();
 
         return $searchRequest;
