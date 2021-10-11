@@ -146,7 +146,7 @@ class GetStores implements ResolverInterface
                 throw new GraphQlInputException(__('No in-delivery support for provided country. Please select another country.'));
             }
 
-            $searchRequest = $this->getStoresBySearch($search, $country, $args);
+            $searchRequest = $this->getStoresBySearch($args);
         }
 
         try {
@@ -193,13 +193,13 @@ class GetStores implements ResolverInterface
      * @return SearchRequestInterface
      * @throws LocalizedException
      */
-    public function getStoresBySearch($search, $country, $args) {
+    public function getStoresBySearch($args) {
         $searchRequest = $this->searchRequest
             ->setScopeType(SalesChannelInterface::TYPE_WEBSITE)
             ->setAreaSearchTerm(sprintf(
                 '%s:%s',
-                $search,
-                $country
+                $args['search'],
+                $args['country']
             ))
             ->setPageSize(50)
             ->setScopeCode($this->storeManager->getWebsite()->getCode())
