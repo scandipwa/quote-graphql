@@ -18,6 +18,7 @@ use Magento\Catalog\Model\Product;
 use Magento\Framework\DataObject;
 use Magento\Quote\Api\Data\CartItemInterface;
 use Magento\Quote\Model\Quote\Item;
+use Magento\Catalog\Model\Product\Type as ProductType;
 
 class Processor extends SourceProcessor
 {
@@ -37,7 +38,18 @@ class Processor extends SourceProcessor
         if ($request->getResetCount() && !$candidate->getStickWithinParent() && $item->getId() == $request->getId()) {
             $item->setData(CartItemInterface::KEY_QTY, 0);
         }
-        $item->addQty($candidate->getCartQty());
+
+        $parent = $item->getParentItem();
+
+        if ($candidate->getTypeId() !== ProductType::TYPE_BUNDLE
+            && $parent
+            && $parent->getProductType() === ProductType::TYPE_BUNDLE
+        ) {
+            $item->setQty($candidate->getCartQty());
+        } else {
+            $item->addQty($candidate->getCartQty());
+        }
+
 
         if (!$item->getParentItem() || $item->getParentItem()->isChildrenCalculated()) {
             $item->setPrice($candidate->getFinalPrice());
