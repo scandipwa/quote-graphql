@@ -64,6 +64,12 @@ class CustomizableOptionDataProvider implements BuyRequestDataProviderInterface
 
             [$optionType, $optionId, $optionValue] = $optionData;
 
+            // Handle previously uploaded file when add product with 'File' customizable option to wishlist
+            if(strpos($optionValue, "file-") === 0){
+                [$filePrefix, $encodedFileInfo] = \explode('-', $optionValue);
+                $optionValue = json_decode(base64_decode($encodedFileInfo));
+            }
+
             if ($optionType == self::OPTION_TYPE) {
                 $customizableOptionsData[$optionId][] = $optionValue;
             }
