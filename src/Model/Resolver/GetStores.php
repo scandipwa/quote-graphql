@@ -15,8 +15,8 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Exception;
-use Magento\Directory\Model\Country\Postcode\ConfigInterface;
 use Magento\Directory\Model\CountryFactory;
+use Magento\Directory\Model\Country\Postcode\ConfigInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -27,9 +27,10 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
-use Magento\InventoryInStorePickup\Model\GetPickupLocations;
 use Magento\InventoryInStorePickupApi\Api\Data\SearchRequestInterface;
 use Magento\InventoryInStorePickupApi\Model\SearchRequestBuilderInterface;
+use Magento\InventoryInStorePickupGraphQl\Model\Resolver\PickupLocations\SearchRequestBuilder\ExtensionProvider;
+use Magento\InventoryInStorePickup\Model\GetPickupLocations;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\Store\Model\StoreManagerInterface;
 
@@ -75,6 +76,11 @@ class GetStores implements ResolverInterface
     protected $postCodesConfig;
 
     /**
+     * @var ExtensionProvider
+     */
+    protected $extensionProvider;
+
+    /**
      * GetStores constructor.
      * @param SearchRequestBuilderInterface $searchRequest
      * @param GetPickupLocations $getPickupLocations
@@ -82,6 +88,7 @@ class GetStores implements ResolverInterface
      * @param ScopeConfigInterface $scopeConfig
      * @param StoreManagerInterface $storeManager
      * @param ConfigInterface $postCodesConfig
+     * @param ExtensionProvider $extensionProvider
      */
     public function __construct(
         SearchRequestBuilderInterface $searchRequest,
@@ -89,7 +96,8 @@ class GetStores implements ResolverInterface
         CountryFactory $countryFactory,
         ScopeConfigInterface $scopeConfig,
         StoreManagerInterface $storeManager,
-        ConfigInterface $postCodesConfig
+        ConfigInterface $postCodesConfig,
+        ExtensionProvider $extensionProvider
     ) {
         $this->searchRequest = $searchRequest;
         $this->getPickupLocations = $getPickupLocations;
@@ -97,6 +105,7 @@ class GetStores implements ResolverInterface
         $this->scopeConfig = $scopeConfig;
         $this->storeManager = $storeManager;
         $this->postCodesConfig = $postCodesConfig;
+        $this->extensionProvider = $extensionProvider;
     }
 
     /**
@@ -128,8 +137,8 @@ class GetStores implements ResolverInterface
 
         $result = [];
 
-        if($args['search'] === '') {
-            $searchRequest = $this->getAllStores();
+        if($search === '') {
+            $searchRequest = $this->getAllStores($args);
         } else {
             $postCodes = $this->postCodesConfig->getPostCodes();
 
@@ -137,7 +146,7 @@ class GetStores implements ResolverInterface
                 throw new GraphQlInputException(__('No in-delivery support for provided country. Please select another country.'));
             }
 
-            $searchRequest = $this->getStoresBySearch($search, $country);
+            $searchRequest = $this->getStoresBySearch($args);
         }
 
         try {
@@ -167,11 +176,12 @@ class GetStores implements ResolverInterface
      * @return SearchRequestInterface
      * @throws LocalizedException
      */
-    public function getAllStores() {
+    public function getAllStores($args) {
         $searchRequest = $this->searchRequest
             ->setScopeType(SalesChannelInterface::TYPE_WEBSITE)
             ->setScopeCode($this->storeManager->getWebsite()->getCode())
             ->setPageSize(50)
+            ->setSearchRequestExtension($this->extensionProvider->getExtensionAttributes($args))
             ->create();
 
         return $searchRequest;
@@ -183,17 +193,18 @@ class GetStores implements ResolverInterface
      * @return SearchRequestInterface
      * @throws LocalizedException
      */
-    public function getStoresBySearch($search, $country) {
+    public function getStoresBySearch($args) {
         $searchRequest = $this->searchRequest
             ->setScopeType(SalesChannelInterface::TYPE_WEBSITE)
             ->setAreaSearchTerm(sprintf(
                 '%s:%s',
-                $search,
-                $country
+                $args['search'],
+                $args['country']
             ))
             ->setPageSize(50)
             ->setScopeCode($this->storeManager->getWebsite()->getCode())
             ->setAreaRadius((int) $this->scopeConfig->getValue(self::SEARCH_RADIUS))
+            ->setSearchRequestExtension($this->extensionProvider->getExtensionAttributes($args))
             ->create();
 
         return $searchRequest;
