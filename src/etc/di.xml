@@ -34,13 +34,6 @@
             <argument name="validatorFile" xsi:type="object">ScandiPWA\QuoteGraphQl\Model\Product\Option\Type\File\ValidatorFile\Proxy</argument>
         </arguments>
     </type>
-    <virtualType name="ScandiPWA\Router\Controller\ConfigurableRouter" type="ScandiPWA\Router\Controller\Router">
-        <arguments>
-            <argument name="ignoredURLs" xsi:type="array">
-                <item name="sales" xsi:type="string">^/sales/.*</item>
-            </argument>
-        </arguments>
-    </virtualType>
     <preference for="Magento\Quote\Model\Quote\Item\Processor" type="ScandiPWA\QuoteGraphQl\Model\Quote\Item\Processor"/>
     <preference for="Magento\QuoteBundleOptions\Model\Cart\BuyRequest\BundleDataProvider" type="ScandiPWA\QuoteGraphQl\Model\Cart\BuyRequest\BundleDataProvider"/>
     <preference for="Magento\Bundle\Model\Product\Type" type="ScandiPWA\QuoteGraphQl\Model\Bundle\Type"/>
