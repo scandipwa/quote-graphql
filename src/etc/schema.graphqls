@@ -416,3 +416,18 @@ input AddressExtensionAttributes {
     attribute_code: String
     value: String
 }
+
+type SelectedShippingMethod {
+    amount_with_tax: Money!
+}
+
+type CartTaxItem {
+    amount: Money!
+    percent: Float
+    label: String!
+    title: String!
+}
+
+interface CartItemInterface {
+    status: String! @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\Cart\\CartItemStatus")
+}

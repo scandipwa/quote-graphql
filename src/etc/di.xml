@@ -39,5 +39,9 @@
     <preference for="Magento\Bundle\Model\Product\Type" type="ScandiPWA\QuoteGraphQl\Model\Bundle\Type"/>
     <preference for="Magento\Catalog\Model\Product\Option\Type\File" type="ScandiPWA\QuoteGraphQl\Model\FileSupport\Option\File"/>
     <preference for="Magento\Quote\Model\Cart\BuyRequest\CustomizableOptionDataProvider" type="ScandiPWA\QuoteGraphQl\Model\FileSupport\BuyRequest\CustomizableOptionDataProvider"/>
+    <preference for="Magento\QuoteGraphQl\Model\Resolver\ShippingAddress\SelectedShippingMethod" type="ScandiPWA\QuoteGraphQl\Model\Resolver\Cart\SelectedShippingMethod"/>
+    <preference for="Magento\QuoteGraphQl\Model\Resolver\CartPrices" type="ScandiPWA\QuoteGraphQl\Model\Resolver\Cart\CartPrices"/>
+    <preference for="Magento\QuoteGraphQl\Model\Resolver\Cart" type="ScandiPWA\QuoteGraphQl\Model\Resolver\Cart\Cart"/>
+    <preference for="Magento\QuoteGraphQl\Model\Resolver\CartItems" type="ScandiPWA\QuoteGraphQl\Model\Resolver\Cart\CartItems"/>
 </config>
 
