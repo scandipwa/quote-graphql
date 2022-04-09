@@ -172,6 +172,7 @@ type PaymentMethod {
 }
 
 interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\TotalsObject") {
+    shipping_address: OrderCustomerAddress
     applied_rule_ids: String
     items_count: Int
     customer_is_guest: Boolean
@@ -352,6 +353,8 @@ type OrderCustomerAddress {
     organizationaddress: String
     organizationiic: String
     organizationbik: String
+    vat_id: String
+    email: String
 }
 
 interface ProductInterface {

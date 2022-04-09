@@ -282,6 +282,7 @@ class GetCartForCustomer extends CartResolver
                 'shipping_amount' => $shipping_amount,
                 'shipping_incl_tax' => $shipping_incl_tax,
                 'shipping_method' => $shipping_method,
+                'shipping_address' => $cart->getShippingAddress(),
                 'is_in_store_pickup_available' => $isInStorePickupAvailable
             ]
         );
