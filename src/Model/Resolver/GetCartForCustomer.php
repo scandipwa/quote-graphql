@@ -38,6 +38,7 @@ use \Magento\Quote\Api\Data\AddressInterface;
 use Magento\Downloadable\Model\LinkRepository;
 use Magento\Downloadable\Model\Link;
 use Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface;
+use Magento\Quote\Model\Quote\Validator\MinimumOrderAmount\ValidationMessage;
 
 class GetCartForCustomer extends CartResolver
 {
@@ -71,6 +72,9 @@ class GetCartForCustomer extends CartResolver
     /** @var IsInStorePickupDeliveryAvailableForCartInterface */
     protected $inStorePickupDeliveryAvailableForCart;
 
+    /** @var ValidationMessage */
+    protected $amountValidationMessage;
+
     /**
      * GetCartForCustomer constructor.
      * @param ParamOverriderCustomerId $overriderCustomerId
@@ -85,6 +89,7 @@ class GetCartForCustomer extends CartResolver
      * @param LinkRepository $linkRepository
      * @param QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId
      * @param IsInStorePickupDeliveryAvailableForCartInterface $inStorePickupDeliveryAvailableForCart
+     * @param ValidationResultFactory $validationResultFactory
      */
     public function __construct(
         ParamOverriderCustomerId $overriderCustomerId,
@@ -98,7 +103,8 @@ class GetCartForCustomer extends CartResolver
         Json $serializer,
         LinkRepository $linkRepository,
         QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId,
-        IsInStorePickupDeliveryAvailableForCartInterface $inStorePickupDeliveryAvailableForCart
+        IsInStorePickupDeliveryAvailableForCartInterface $inStorePickupDeliveryAvailableForCart,
+        ValidationMessage $amountValidationMessage
     ) {
         parent::__construct(
             $guestCartRepository,
@@ -115,6 +121,7 @@ class GetCartForCustomer extends CartResolver
         $this->linkRepository = $linkRepository;
         $this->quoteIdToMaskedQuoteId = $quoteIdToMaskedQuoteId;
         $this->inStorePickupDeliveryAvailableForCart = $inStorePickupDeliveryAvailableForCart;
+        $this->amountValidationMessage = $amountValidationMessage;
     }
 
     /**
@@ -266,6 +273,8 @@ class GetCartForCustomer extends CartResolver
         $shipping_method = $address->getShippingMethod();
         $masked_id = $this->quoteIdToMaskedQuoteId->execute(intval($cart->getId()));
         $isInStorePickupAvailable = $this->inStorePickupDeliveryAvailableForCart->execute((int) $cart->getId());
+        $minimumOrderAmountReached = $cart->validateMinimumAmount();
+        $minimumOrderDescription = $this->amountValidationMessage->getMessage();
 
         return array_merge(
             $cartData,
@@ -283,7 +292,11 @@ class GetCartForCustomer extends CartResolver
                 'shipping_incl_tax' => $shipping_incl_tax,
                 'shipping_method' => $shipping_method,
                 'shipping_address' => $cart->getShippingAddress(),
-                'is_in_store_pickup_available' => $isInStorePickupAvailable
+                'is_in_store_pickup_available' => $isInStorePickupAvailable,
+                'minimum_order_amount' => [
+                    'minimum_order_amount_reached' => $minimumOrderAmountReached,
+                    'minimum_order_description' => $minimumOrderDescription
+                ]
             ]
         );
     }
