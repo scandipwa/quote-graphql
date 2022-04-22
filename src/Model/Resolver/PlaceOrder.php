@@ -122,7 +122,8 @@ class PlaceOrder implements ResolverInterface
 
             return [
                 'order' => [
-                    'order_id' => $order->getIncrementId(),
+                    'order_id' => $order->getId(),
+                    'order_number' => $order->getIncrementId(),
                 ],
             ];
         } catch (NoSuchEntityException $e) {
