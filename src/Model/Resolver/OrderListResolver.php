@@ -1,5 +1,4 @@
 <?php
-
 /**
  * ScandiPWA - Progressive Web App for Magento
  *
@@ -56,6 +55,8 @@ class OrderListResolver implements ResolverInterface
         $this->collectionFactory = $collectionFactory;
         $this->checkCustomerAccount = $checkCustomerAccount;
         $this->customerRepository = $customerRepository;
+
+        parent::__construct($collectionFactory, $checkCustomerAccount);
     }
 
     /**
@@ -78,8 +79,8 @@ class OrderListResolver implements ResolverInterface
 
         $ordersCollection = $this->collectionFactory->create();
         $ordersCollection->addFieldToFilter(
-            ['customer_id', 'customer_email'],
-            [['eq' => $customerId], ['eq' => $customer->getEmail()]]
+            ['customer_id','customer_email'],
+            [['eq' => $customerId],['eq'=>$customer->getEmail()]]
         );
         $orders = $ordersCollection->load();
 
