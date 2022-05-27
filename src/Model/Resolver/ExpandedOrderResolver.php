@@ -21,7 +21,6 @@ use Magento\Sales\Model\ResourceModel\Order\CollectionFactoryInterface;
 use ScandiPWA\QuoteGraphQl\Model\Customer\CheckCustomerAccount;
 use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
 use Magento\Sales\Model\OrderRepository;
-use Magento\Customer\Api\CustomerRepositoryInterface;
 
 /**
  * Orders data resolver
@@ -44,26 +43,18 @@ class ExpandedOrderResolver implements ResolverInterface
     protected $orderRepository;
 
     /**
-     * @var CustomerRepositoryInterface
-     */
-    protected $customerRepository;
-
-    /**
      * @param CollectionFactoryInterface $collectionFactory
      * @param CheckCustomerAccount $checkCustomerAccount
      * @param OrderRepository $orderRepository
-     * @param CustomerRepositoryInterface $customerRepository
      */
     public function __construct(
         CollectionFactoryInterface $collectionFactory,
         CheckCustomerAccount $checkCustomerAccount,
-        OrderRepository $orderRepository,
-        CustomerRepositoryInterface $customerRepository
+        OrderRepository $orderRepository
     ) {
         $this->collectionFactory = $collectionFactory;
         $this->checkCustomerAccount = $checkCustomerAccount;
         $this->orderRepository = $orderRepository;
-        $this->customerRepository = $customerRepository;
     }
 
     /**
@@ -85,9 +76,7 @@ class ExpandedOrderResolver implements ResolverInterface
         $orderId = $args['id'];
         $order = $this->orderRepository->get($orderId);
 
-        $customer = $this->customerRepository->getById($customerId);
-
-        if ($customerId !== $order->getCustomerId() && $customer->getEmail() !== $order->getCustomerEmail()) {
+        if ($customerId != $order->getCustomerId()) {
             throw new GraphQlNoSuchEntityException(__('Customer ID is invalid.'));
         }
 
