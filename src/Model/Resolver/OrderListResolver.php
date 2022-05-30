@@ -28,12 +28,12 @@ class OrderListResolver implements ResolverInterface
     /**
      * @var CollectionFactoryInterface
      */
-    private $collectionFactory;
+    protected CollectionFactoryInterface $collectionFactory;
 
     /**
      * @var CheckCustomerAccount
      */
-    private $checkCustomerAccount;
+    protected CheckCustomerAccount $checkCustomerAccount;
 
     /**
      * @param CollectionFactoryInterface $collectionFactory
