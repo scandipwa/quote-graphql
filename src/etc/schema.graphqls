@@ -205,6 +205,7 @@ interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\R
     quote_currency_code: String
     items: [TotalsItem]
     is_in_store_pickup_available: Boolean
+    minimum_order_amount: MinimumOrderAmount
 }
 
 type TotalsItem {
@@ -239,6 +240,11 @@ type TotalsItem {
 type SelectedDownloadableLinks {
     label: String
     id: Int
+}
+
+type MinimumOrderAmount {
+    minimum_order_amount_reached: Boolean
+    minimum_order_description: String
 }
 
 type TotalsSegment {

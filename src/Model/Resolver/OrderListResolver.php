@@ -1,4 +1,5 @@
 <?php
+
 /**
  * ScandiPWA - Progressive Web App for Magento
  *
@@ -19,6 +20,7 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactoryInterface;
 use ScandiPWA\QuoteGraphQl\Model\Customer\CheckCustomerAccount;
+use Magento\Customer\Api\CustomerRepositoryInterface;
 
 /**
  * Orders data reslover
@@ -28,23 +30,32 @@ class OrderListResolver implements ResolverInterface
     /**
      * @var CollectionFactoryInterface
      */
-    private $collectionFactory;
+    protected $collectionFactory;
 
     /**
      * @var CheckCustomerAccount
      */
-    private $checkCustomerAccount;
+    protected $checkCustomerAccount;
+
+
+    /**
+     * @var CustomerRepositoryInterface
+     */
+    protected $customerRepository;
 
     /**
      * @param CollectionFactoryInterface $collectionFactory
      * @param CheckCustomerAccount $checkCustomerAccount
+     * @param CustomerRepositoryInterface $customerRepository
      */
     public function __construct(
         CollectionFactoryInterface $collectionFactory,
-        CheckCustomerAccount $checkCustomerAccount
+        CheckCustomerAccount $checkCustomerAccount,
+        CustomerRepositoryInterface $customerRepository
     ) {
         $this->collectionFactory = $collectionFactory;
         $this->checkCustomerAccount = $checkCustomerAccount;
+        $this->customerRepository = $customerRepository;
     }
 
     /**
@@ -63,7 +74,14 @@ class OrderListResolver implements ResolverInterface
 
         $this->checkCustomerAccount->execute($customerId, $context->getUserType());
 
-        $orders = $this->collectionFactory->create($customerId);
+        $customer = $this->customerRepository->getById($customerId);
+
+        $ordersCollection = $this->collectionFactory->create();
+        $ordersCollection->addFieldToFilter(
+            ['customer_id', 'customer_email'],
+            [['eq' => $customerId], ['eq' => $customer->getEmail()]]
+        );
+        $orders = $ordersCollection->load();
 
         foreach ($orders as $order) {
             $trackNumbers = [];
