@@ -247,7 +247,8 @@ class GetCartForCustomer extends CartResolver
             $this->productsData = $this->productPostProcessor->process(
                 $products,
                 'items/product',
-                $adjustedInfo
+                $adjustedInfo,
+                ['isCartProduct'=> true]
             );
 
             foreach ($items as $item) {
