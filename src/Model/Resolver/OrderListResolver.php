@@ -1,5 +1,4 @@
 <?php
-
 /**
  * ScandiPWA - Progressive Web App for Magento
  *
@@ -20,7 +19,6 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactoryInterface;
 use ScandiPWA\QuoteGraphQl\Model\Customer\CheckCustomerAccount;
-use Magento\Customer\Api\CustomerRepositoryInterface;
 
 /**
  * Orders data reslover
@@ -30,32 +28,23 @@ class OrderListResolver implements ResolverInterface
     /**
      * @var CollectionFactoryInterface
      */
-    protected $collectionFactory;
+    protected CollectionFactoryInterface $collectionFactory;
 
     /**
      * @var CheckCustomerAccount
      */
-    protected $checkCustomerAccount;
-
-
-    /**
-     * @var CustomerRepositoryInterface
-     */
-    protected $customerRepository;
+    protected CheckCustomerAccount $checkCustomerAccount;
 
     /**
      * @param CollectionFactoryInterface $collectionFactory
      * @param CheckCustomerAccount $checkCustomerAccount
-     * @param CustomerRepositoryInterface $customerRepository
      */
     public function __construct(
         CollectionFactoryInterface $collectionFactory,
-        CheckCustomerAccount $checkCustomerAccount,
-        CustomerRepositoryInterface $customerRepository
+        CheckCustomerAccount $checkCustomerAccount
     ) {
         $this->collectionFactory = $collectionFactory;
         $this->checkCustomerAccount = $checkCustomerAccount;
-        $this->customerRepository = $customerRepository;
     }
 
     /**
@@ -74,14 +63,7 @@ class OrderListResolver implements ResolverInterface
 
         $this->checkCustomerAccount->execute($customerId, $context->getUserType());
 
-        $customer = $this->customerRepository->getById($customerId);
-
-        $ordersCollection = $this->collectionFactory->create();
-        $ordersCollection->addFieldToFilter(
-            ['customer_id', 'customer_email'],
-            [['eq' => $customerId], ['eq' => $customer->getEmail()]]
-        );
-        $orders = $ordersCollection->load();
+        $orders = $this->collectionFactory->create($customerId);
 
         foreach ($orders as $order) {
             $trackNumbers = [];
