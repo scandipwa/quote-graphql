@@ -425,3 +425,35 @@ input AddressExtensionAttributes {
     attribute_code: String
     value: String
 }
+
+#Retrieving a shopping cart via Magento's standard functions extension
+
+type Cart @doc(description: "Contains the contents and other details about a guest or customer cart.") {
+    minimum_order_amount: MinimumOrderAmount @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\CartMinimumOrderAmount") @doc(description: "Indicates whether the cart contains only virtual products.")
+    is_in_store_pickup_available: Boolean @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\CartIsInStorePickupAvailable") @doc(description: "Indicates whether the pickup in store is available.")
+}
+
+type CartPrices @doc(description: "Contains details about the final price of items in the cart, including discount and tax information.") {
+    applied_rule_ids: String @doc(description: "Ids of the rules applied to the cart.")
+    coupon_code: String @doc(description: "Coupon code applied to cart.")
+    quote_currency_code: String @doc(description: "Base quote currency code.")
+}
+
+type CartTaxItem  @doc(description: "Contains tax information about an item in the cart.") {
+    percent: Float @doc(description: "The tax percentage applied to the item.")
+}
+
+interface CartItemInterface @typeResolver(class: "Magento\\QuoteGraphQl\\Model\\Resolver\\CartItemTypeResolver") @doc(description: "An interface for products in a cart.") {
+    sku: String
+}
+
+type SelectedShippingMethod @doc(description: "Contains details about the selected shipping method and carrier.") {
+    amount_incl_tax: Float @doc(description: "The cost of shipping including tax using this shipping method.")
+    tax_amount: Float @doc(description: "A shipping tax amount.")
+    address: CartAddress @doc(description: "An array of shipping addresses.")
+}
+
+type CartAddress implements CartAddressInterface {
+    email: String
+    vat_id: String
+}

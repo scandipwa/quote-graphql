@@ -34,10 +34,21 @@
             <argument name="validatorFile" xsi:type="object">ScandiPWA\QuoteGraphQl\Model\Product\Option\Type\File\ValidatorFile\Proxy</argument>
         </arguments>
     </type>
-    <preference for="Magento\Quote\Model\Quote\Item\Processor" type="ScandiPWA\QuoteGraphQl\Model\Quote\Item\Processor"/>
-    <preference for="Magento\QuoteBundleOptions\Model\Cart\BuyRequest\BundleDataProvider" type="ScandiPWA\QuoteGraphQl\Model\Cart\BuyRequest\BundleDataProvider"/>
-    <preference for="Magento\Bundle\Model\Product\Type" type="ScandiPWA\QuoteGraphQl\Model\Bundle\Type"/>
-    <preference for="Magento\Catalog\Model\Product\Option\Type\File" type="ScandiPWA\QuoteGraphQl\Model\FileSupport\Option\File"/>
-    <preference for="Magento\Quote\Model\Cart\BuyRequest\CustomizableOptionDataProvider" type="ScandiPWA\QuoteGraphQl\Model\FileSupport\BuyRequest\CustomizableOptionDataProvider"/>
+    <preference for="Magento\Quote\Model\Quote\Item\Processor"
+                type="ScandiPWA\QuoteGraphQl\Model\Quote\Item\Processor"/>
+    <preference for="Magento\QuoteBundleOptions\Model\Cart\BuyRequest\BundleDataProvider"
+                type="ScandiPWA\QuoteGraphQl\Model\Cart\BuyRequest\BundleDataProvider"/>
+    <preference for="Magento\Bundle\Model\Product\Type"
+                type="ScandiPWA\QuoteGraphQl\Model\Bundle\Type"/>
+    <preference for="Magento\Catalog\Model\Product\Option\Type\File"
+                type="ScandiPWA\QuoteGraphQl\Model\FileSupport\Option\File"/>
+    <preference for="Magento\Quote\Model\Cart\BuyRequest\CustomizableOptionDataProvider"
+                type="ScandiPWA\QuoteGraphQl\Model\FileSupport\BuyRequest\CustomizableOptionDataProvider"/>
+    <preference for="Magento\QuoteGraphQl\Model\Resolver\CartPrices"
+                type="ScandiPWA\QuoteGraphQl\Model\Resolver\CartPrices"/>
+    <preference for="Magento\QuoteGraphQl\Model\Resolver\CartItems"
+                type="ScandiPWA\QuoteGraphQl\Model\Resolver\CartItems"/>
+    <preference for="Magento\QuoteGraphQl\Model\Resolver\ShippingAddress\SelectedShippingMethod"
+                type="ScandiPWA\QuoteGraphQl\Model\Resolver\ShippingAddress\SelectedShippingMethod"/>
 </config>
 
