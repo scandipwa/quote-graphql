@@ -15,15 +15,14 @@ declare(strict_types=1);
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
 use Magento\Catalog\Helper\Image as HelperImage;
+use Magento\Framework\App\Area;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
-use Magento\QuoteGraphQl\Model\Resolver\CartItems as SourceCartItems;
-
-use Magento\Framework\App\Area;
-use Magento\QuoteGraphQl\Model\Cart\GetCartProducts;
 use Magento\Framework\GraphQl\Query\Uid;
-use Magento\Store\Model\StoreManagerInterface;
+use Magento\QuoteGraphQl\Model\Cart\GetCartProducts;
+use Magento\QuoteGraphQl\Model\Resolver\CartItems as SourceCartItems;
 use Magento\Store\Model\App\Emulation;
+use Magento\Store\Model\StoreManagerInterface;
 
 /**
  * Class CartItems
