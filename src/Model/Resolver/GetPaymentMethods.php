@@ -36,6 +36,11 @@ use Magento\Quote\Model\QuoteIdMaskFactory;
 class GetPaymentMethods implements ResolverInterface
 {
     /**
+     * Zero Subtotal Checkout payment method
+     */
+    public const FREE_PAYMENT = 'free';
+
+    /**
      * @var PaymentDetailsFactory
      */
     protected $paymentDetailsFactory;
@@ -111,6 +116,19 @@ class GetPaymentMethods implements ResolverInterface
         $paymentDetails = $this->paymentDetailsFactory->create();
         $paymentDetails->setPaymentMethods($this->paymentMethodManagement->getList($cartId));
         $paymentDetails->setTotals($this->cartTotalsRepository->get($cartId));
+        $paymentMethods = $paymentDetails->getPaymentMethods();
+
+        /** If Zero Subtotal Checkout is available filter out all the other methods and return only Free Payment */
+        foreach ($paymentMethods as $payment) {
+            if ($payment->getCode() === self::FREE_PAYMENT) {
+                return [
+                    [
+                        'code' => $payment->getCode(),
+                        'title' => $payment->getTitle(),
+                    ]
+                ];
+            }
+        }
 
         return array_map(
             function ($payment) {
@@ -120,7 +138,7 @@ class GetPaymentMethods implements ResolverInterface
                     'title' => $payment->getTitle(),
                 ];
             },
-            $paymentDetails->getPaymentMethods()
+            $paymentMethods
         );
     }
 }
