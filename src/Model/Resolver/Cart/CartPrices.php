@@ -17,7 +17,7 @@ use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Address\Total;
-use Magento\Quote\Model\Quote\TotalsCollector;
+use Magento\QuoteGraphQl\Model\Cart\TotalsCollector;
 use Magento\QuoteGraphQl\Model\Resolver\CartPrices as SourceCartPrices;
 
 /**
@@ -28,7 +28,7 @@ class CartPrices extends SourceCartPrices
     /**
      * @var TotalsCollector
      */
-    public $totalsCollector;
+    public TotalsCollector $totalsCollector;
 
     /**
      * @param TotalsCollector $totalsCollector
@@ -39,6 +39,9 @@ class CartPrices extends SourceCartPrices
         $this->totalsCollector = $totalsCollector;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
         $data = parent::resolve($field, $context, $info, $value, $args);
@@ -50,6 +53,7 @@ class CartPrices extends SourceCartPrices
         $currency = $quote->getQuoteCurrencyCode();
 
         $data['applied_taxes'] = $this->getAppliedTaxes($cartTotals, $currency);
+
         return $data;
     }
 
@@ -60,7 +64,7 @@ class CartPrices extends SourceCartPrices
      * @param string $currency
      * @return array
      */
-    private function getAppliedTaxes(Total $total, string $currency): array
+    public function getAppliedTaxes(Total $total, string $currency): array
     {
         $appliedTaxesData = [];
         $appliedTaxes = $total->getAppliedTaxes();
@@ -79,7 +83,10 @@ class CartPrices extends SourceCartPrices
                 'label' => $appliedTax['id'],
                 'title' => $title,
                 'percent' => $appliedTax['percent'],
-                'amount' => ['value' => $appliedTax['amount'], 'currency' => $currency]
+                'amount' => [
+                    'value' => $appliedTax['amount'],
+                    'currency' => $currency
+                ]
             ];
         }
 

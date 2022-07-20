@@ -29,7 +29,7 @@ class CartItems extends SourceCartItems
     /**
      * @var Images
      */
-    protected $imageHelper;
+    protected Images $imageHelper;
 
     /**
      * @param GetCartProducts $getCartProducts
@@ -46,13 +46,7 @@ class CartItems extends SourceCartItems
     }
 
     /**
-     * @param Field $field
-     * @param $context
-     * @param ResolveInfo $info
-     * @param array|null $value
-     * @param array|null $args
-     * @return array|\Magento\Framework\GraphQl\Query\Resolver\Value|mixed
-     * @throws \Exception
+     * @inheritdoc
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
@@ -92,7 +86,7 @@ class CartItems extends SourceCartItems
 
         $imageId = sprintf('scandipwa_%s', $imageType);
 
-        $image = $this->imageHelper
+        $imageUrl = $this->imageHelper
             ->init(
                 $product,
                 $imageId,
@@ -101,8 +95,9 @@ class CartItems extends SourceCartItems
             ->constrainOnly(true)
             ->keepAspectRatio(true)
             ->keepTransparency(true)
-            ->keepFrame(false);
+            ->keepFrame(false)
+            ->getUrl();
 
-        return $image->getUrl();
+        return $imageUrl;
     }
 }

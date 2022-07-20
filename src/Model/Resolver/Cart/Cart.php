@@ -24,6 +24,7 @@ use Magento\QuoteGraphQl\Model\Resolver\Cart as SourceCart;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Webapi\Controller\Rest\ParamOverriderCustomerId;
 use Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface;
+use Magento\Quote\Api\Data\CartInterface;
 
 /**
  * @inheritdoc
@@ -33,17 +34,17 @@ class Cart extends SourceCart
     /**
      * @var ParamOverriderCustomerId
      */
-    public $overriderCustomerId;
+    public ParamOverriderCustomerId $overriderCustomerId;
 
     /**
      * @var CartManagementInterface
      */
-    public $quoteManagement;
+    public CartManagementInterface $quoteManagement;
 
     /**
      * @var QuoteIdToMaskedQuoteIdInterface
      */
-    public $quoteIdToMaskedQuoteId;
+    public QuoteIdToMaskedQuoteIdInterface $quoteIdToMaskedQuoteId;
 
     /**
      * CartResolver constructor.
@@ -61,7 +62,7 @@ class Cart extends SourceCart
     }
 
     /**
-     * @inheirtDoc
+     * @inheritdoc
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
@@ -78,9 +79,9 @@ class Cart extends SourceCart
     }
 
     /**
-     * @return \Magento\Quote\Api\Data\CartInterface
+     * @return CartInterface
      */
-    private function getCartForLoggedInUser()
+    private function getCartForLoggedInUser() : CartInterface
     {
         try {
             return $this->quoteManagement->getCartForCustomer(

@@ -22,19 +22,20 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Model\Quote\Item;
 use Magento\CatalogInventory\Api\StockRegistryInterface;
+use Magento\CatalogInventory\Api\Data\StockStatusInterface;
 
 /**
  * Resolves cart items status - out of stock, incorrect qty, ok
  */
 class CartItemStatus implements ResolverInterface
 {
-    public const ERR_QRY = 'ERR_QTY';
+    public const ERR_QTY = 'ERR_QTY';
     public const MSG_OK = 'STATUS_OK';
 
     /**
      * @var StockRegistryInterface
      */
-    public $stockRegistry;
+    public StockRegistryInterface $stockRegistry;
 
     /**
      * @param StockRegistryInterface $stockRegistry
@@ -44,6 +45,14 @@ class CartItemStatus implements ResolverInterface
         $this->stockRegistry = $stockRegistry;
     }
 
+    /**
+     * @param Field $field
+     * @param ContextInterface $context
+     * @param ResolveInfo $info
+     * @param array|null $value
+     * @param array|null $args
+     * @return string
+     */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
         if (!isset($value['model'])) {
@@ -54,10 +63,10 @@ class CartItemStatus implements ResolverInterface
         $cartItem = $value['model'];
 
         $product = $cartItem->getProduct();
-        /* @var \Magento\CatalogInventory\Api\Data\StockStatusInterface $stockStatus */
+        /** @var StockStatusInterface $stockStatus */
         $stockStatus = $this->stockRegistry->getStockStatus($product->getId(), $product->getStore()->getWebsiteId());
 
-        /* @var \Magento\CatalogInventory\Api\Data\StockStatusInterface $parentStockStatus */
+        /** @var StockStatusInterface $parentStockStatus */
         $parentStockStatus = false;
 
         /**
@@ -71,21 +80,21 @@ class CartItemStatus implements ResolverInterface
             );
         }
 
-        if ($stockStatus) {
-            if ($stockStatus->getStockStatus() === Stock::STOCK_OUT_OF_STOCK
-                || $parentStockStatus && $parentStockStatus->getStockStatus() == Stock::STOCK_OUT_OF_STOCK
-            ) {
-                $hasError = $cartItem->getStockStateResult()
-                    ? $cartItem->getStockStateResult()->getHasError() : false;
-
-                if (!$hasError) {
-                    return Stock::STOCK_OUT_OF_STOCK;
-                } else {
-                    return self::ERR_QRY;
-                }
-            }
-        } else {
+        if (!isset($stockStatus)) {
             return Stock::STOCK_OUT_OF_STOCK;
+        }
+
+        if ($stockStatus->getStockStatus() === Stock::STOCK_OUT_OF_STOCK
+            || $parentStockStatus && $parentStockStatus->getStockStatus() == Stock::STOCK_OUT_OF_STOCK
+        ) {
+            $hasError = $cartItem->getStockStateResult()
+                ? $cartItem->getStockStateResult()->getHasError() : false;
+
+            if (!$hasError) {
+                return Stock::STOCK_OUT_OF_STOCK;
+            } else {
+                return self::ERR_QTY;
+            }
         }
 
         return self::MSG_OK;
