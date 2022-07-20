@@ -13,7 +13,6 @@
 
 type Query {
     getPaymentMethods(guestCartId: String): [PaymentMethod] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetPaymentMethods")
-    getCartForCustomer(guestCartId: String): QuoteData @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\GetCartForCustomer")
     getOrderList: OrderList @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\OrderListResolver") @doc(description: "The Sales Order query returns information about a Sales order")
     getOrderById(id: Int!): Order @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ExpandedOrderResolver") @doc(description: "The Sales Order query returns information about a Sales order")
     getBraintreeConfig: Braintree @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\BraintreeResolver")
@@ -24,42 +23,7 @@ type Query {
 type Mutation {
     estimateShippingCosts(address: EstimateShippingCostsAddress!, guestCartId: String): [ShippingMethod] @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\EstimateShippingCosts")
     saveAddressInformation(addressInformation: SaveAddressInformation!, guestCartId: String): PaymentDetails @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveAddressInformation")
-    saveCartItem(cartItem: CartItemInput!, guestCartId: String): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SaveCartItem")
-    removeCartItem(guestCartId: String, item_id: Int!): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCartItem")
-    applyCoupon(guestCartId: String, coupon_code: String!): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\ApplyCoupon")
-    removeCoupon(guestCartId: String): Query @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\RemoveCoupon")
     linkOrder(customer_email: String!): Boolean @resolver(class:"\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\LinkOrder")
-
-    # Magento 2 overrides to stop sending logged in user cart IDs
-    s_setPaymentMethodOnCart(input: S_SetPaymentMethodOnCartInput!): SetPaymentMethodOnCartOutput @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SetPaymentMethodOnCart")
-    s_placeOrder(guestCartId: String): PlaceOrderOutput @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\PlaceOrder")
-    s_setBillingAddressOnCart(input: S_SetBillingAddressOnCartInput): SetBillingAddressOnCartOutput @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\SetBillingAddressOnCart")
-}
-
-input S_SetBillingAddressOnCartInput {
-    guest_cart_id: String
-    billing_address: BillingAddressInput!
-    same_as_shipping: Boolean
-}
-
-input S_SetPaymentMethodOnCartInput {
-    guest_cart_id: String
-    payment_method: PaymentMethodInput!
-}
-
-input CartItemInput {
-    id: CartItemId
-    sku: String
-    quantity: Float!
-    quote_id: String
-    item_id: Int
-    product_type: String
-    product_option: ProductOptionInput
-}
-
-input CartItemId {
-    sku: String,
-    item_id: Int
 }
 
 input ProductOptionInput {
@@ -89,22 +53,6 @@ input CustomizableOptionsInput {
 
 input DownloadableProductLinksInput {
     link_id: Int
-}
-
-input PaymentInformation {
-    billing_address: AddressInput!
-    paymentMethod: PaymentMethodInput!
-}
-
-input PaymentMethodInput {
-    method: String
-    additional_data: PaymentMethodAdditionalData
-}
-
-input PaymentMethodAdditionalData {
-    payment_method_nonce: String
-    cc_stripejs_token: String
-    cc_save: Boolean
 }
 
 input AddressInput {
@@ -152,12 +100,6 @@ type Braintree {
     is_three_d_secure: Boolean
 }
 
-type QuoteData implements TotalsObject  {
-    id: String
-    is_virtual: Boolean
-    applied_taxes: [AppliedTaxItem]
-}
-
 type PaymentTotals implements TotalsObject {
 }
 
@@ -172,6 +114,7 @@ type PaymentMethod {
 }
 
 interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\TotalsObject") {
+    shipping_address: OrderCustomerAddress
     applied_rule_ids: String
     items_count: Int
     customer_is_guest: Boolean
@@ -204,6 +147,7 @@ interface TotalsObject @typeResolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\R
     quote_currency_code: String
     items: [TotalsItem]
     is_in_store_pickup_available: Boolean
+    minimum_order_amount: MinimumOrderAmount
 }
 
 type TotalsItem {
@@ -240,21 +184,9 @@ type SelectedDownloadableLinks {
     id: Int
 }
 
-type TotalsSegment {
-    code: String
-    title: String
-    value: Float
-    extension_attributes: ExtensionAttributes
-}
-
-type ExtensionAttributes {
-    tax_grandtotal_details: [TaxGrandTotalDetails]
-}
-
-type TaxGrandTotalDetails {
-    # rates:
-    amount: Float
-    group_id: Int
+type MinimumOrderAmount {
+    minimum_order_amount_reached: Boolean
+    minimum_order_description: String
 }
 
 type ShippingMethod {
@@ -352,6 +284,8 @@ type OrderCustomerAddress {
     organizationaddress: String
     organizationiic: String
     organizationbik: String
+    vat_id: String
+    email: String
 }
 
 interface ProductInterface {
@@ -368,17 +302,6 @@ type CartDisplayConfig {
     include_tax_in_order_total: Boolean
     display_full_tax_summary: Boolean
     display_zero_tax_subtotal: Boolean
-}
-
-type AppliedTaxItem {
-    amount: Float
-    percent: Float
-    rates: [AppliedTaxItemRate]
-}
-
-type AppliedTaxItemRate {
-    percent: Float
-    title: String
 }
 
 extend input CartAddressInput {
@@ -417,17 +340,36 @@ input AddressExtensionAttributes {
     value: String
 }
 
-type SelectedShippingMethod {
-    amount_with_tax: Money!
+type Cart @doc(description: "Contains the contents and other details about a guest or customer cart.") {
+    minimum_order_amount: MinimumOrderAmount @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\CartMinimumOrderAmount") @doc(description: "Indicates whether the cart contains only virtual products.")
+    is_in_store_pickup_available: Boolean @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\CartIsInStorePickupAvailable") @doc(description: "Indicates whether the pickup in store is available.")
 }
 
-type CartTaxItem {
+type CartPrices @doc(description: "Contains details about the final price of items in the cart, including discount and tax information.") {
+    applied_rule_ids: String @doc(description: "Ids of the rules applied to the cart.")
+    coupon_code: String @doc(description: "Coupon code applied to cart.")
+    quote_currency_code: String @doc(description: "Base quote currency code.")
+}
+
+type CartTaxItem  @doc(description: "Contains tax information about an item in the cart.") {
+    percent: Float @doc(description: "The tax percentage applied to the item.")
     amount: Money!
-    percent: Float
     label: String!
     title: String!
 }
 
-interface CartItemInterface {
+interface CartItemInterface @typeResolver(class: "Magento\\QuoteGraphQl\\Model\\Resolver\\CartItemTypeResolver") @doc(description: "An interface for products in a cart.") {
+    sku: String
     status: String! @resolver(class: "\\ScandiPWA\\QuoteGraphQl\\Model\\Resolver\\Cart\\CartItemStatus")
+}
+
+type SelectedShippingMethod @doc(description: "Contains details about the selected shipping method and carrier.") {
+    amount_incl_tax: Money!t @doc(description: "The cost of shipping including tax using this shipping method.")
+    tax_amount: Float @doc(description: "A shipping tax amount.")
+    address: CartAddress @doc(description: "An array of shipping addresses.")
+}
+
+type CartAddress implements CartAddressInterface {
+    email: String
+    vat_id: String
 }

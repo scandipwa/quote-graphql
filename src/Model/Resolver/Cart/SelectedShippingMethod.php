@@ -30,16 +30,33 @@ class SelectedShippingMethod extends SourceSelectedShippingMethod
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        $data = parent::resolve($field, $context, $info, $value, $args);
+        $result = parent::resolve($field, $context, $info, $value, $args);
 
         /** @var Address $address */
         $address = $value['model'];
 
-        $data['amount_with_tax'] = [
-            'value' => $address->getShippingInclTax(),
-            'currency' => $address->getQuote()->getQuoteCurrencyCode(),
-        ];
-
-        return $data;
+        return array_merge($result, [
+            'address' => [
+                'city' => $address->getCity(),
+                'country' => [
+                    'code' => $address->getCountryId()
+                ],
+                'email' => $address->getEmail(),
+                'firstname' => $address->getFirstname(),
+                'lastname' => $address->getLastname(),
+                'postcode' => $address->getPostcode(),
+                'region' => [
+                    'label' => $address->getRegion()
+                ],
+                'street' => $address->getStreet(),
+                'telephone' => $address->getTelephone(),
+                'vat_id' => $address->getVatId()
+            ],
+            'amount_incl_tax' => [
+                'value' => $address->getShippingInclTax(),
+                'currency' => $address->getQuote()->getQuoteCurrencyCode(),
+            ],
+            'tax_amount' => $address->getShippingTaxAmount()
+        ]);
     }
 }
