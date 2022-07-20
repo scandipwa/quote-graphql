@@ -364,7 +364,7 @@ interface CartItemInterface @typeResolver(class: "Magento\\QuoteGraphQl\\Model\\
 }
 
 type SelectedShippingMethod @doc(description: "Contains details about the selected shipping method and carrier.") {
-    amount_incl_tax: Money!t @doc(description: "The cost of shipping including tax using this shipping method.")
+    amount_incl_tax: Money! @doc(description: "The cost of shipping including tax using this shipping method.")
     tax_amount: Float @doc(description: "A shipping tax amount.")
     address: CartAddress @doc(description: "An array of shipping addresses.")
 }

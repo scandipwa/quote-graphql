@@ -18,7 +18,6 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\QuoteGraphQl\Model\Resolver\ShippingAddress\SelectedShippingMethod as SourceSelectedShippingMethod;
-use Magento\Quote\Model\Quote\Address;
 
 /**
  * @inheritdoc
@@ -26,13 +25,21 @@ use Magento\Quote\Model\Quote\Address;
 class SelectedShippingMethod extends SourceSelectedShippingMethod
 {
     /**
-     * @inheritdoc
+     * @param Field $field
+     * @param ContextInterface $context
+     * @param ResolveInfo $info
+     * @param array|null $value
+     * @param array|null $args
+     * @return array
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
         $result = parent::resolve($field, $context, $info, $value, $args);
 
-        /** @var Address $address */
+        if (!isset($result)) {
+            return null;
+        }
+
         $address = $value['model'];
 
         return array_merge($result, [
