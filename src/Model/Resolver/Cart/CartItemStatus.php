@@ -59,14 +59,21 @@ class CartItemStatus implements ResolverInterface
             throw new LocalizedException(__('"model" value should be specified'));
         }
 
-        /** @var Item $cartItem */
+        /**
+         * @var Item $cartItem
+         */
         $cartItem = $value['model'];
 
         $product = $cartItem->getProduct();
-        /** @var StockStatusInterface $stockStatus */
+
+        /**
+         * @var StockStatusInterface $stockStatus
+         */
         $stockStatus = $this->stockRegistry->getStockStatus($product->getId(), $product->getStore()->getWebsiteId());
 
-        /** @var StockStatusInterface $parentStockStatus */
+        /**
+         * @var StockStatusInterface $parentStockStatus
+         */
         $parentStockStatus = false;
 
         /**
