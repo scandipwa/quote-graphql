@@ -73,6 +73,11 @@ class SaveAddressInformation implements ResolverInterface {
     protected const PICKUP_METHOD_CODE  = 'pickup';
 
     /**
+     * Zero Subtotal Checkout payment method
+     */
+    protected const FREE_PAYMENT = 'free';
+
+    /**
      * SaveAddressInformation constructor.
      * @param ShippingInformationManagementInterface $shippingInformationManagement
      * @param GuestShippingInformationManagementInterface $guestShippingInformationManagement
@@ -170,6 +175,52 @@ class SaveAddressInformation implements ResolverInterface {
         // The following crutch exists because of Magento not being able to fix an issue for four years
         // Link to the issue: https://github.com/magento/magento2/issues/7769
         $rawTotals->setGrandTotal($rawTotals->getTotalSegments()['grand_total']['value']);
+        $totals = array_merge(
+            $rawTotals->getData(),
+            [ 'items' => array_map(function ($item) {
+                /** @var TotalsItemInterface $item */
+                return [
+                    TotalsItemInterface::KEY_ITEM_ID => $item->getItemId(),
+                    TotalsItemInterface::KEY_PRICE => $item->getPrice(),
+                    TotalsItemInterface::KEY_BASE_PRICE => $item->getBasePrice(),
+                    TotalsItemInterface::KEY_QTY => $item->getQty(),
+                    TotalsItemInterface::KEY_ROW_TOTAL => $item->getRowTotal(),
+                    TotalsItemInterface::KEY_BASE_ROW_TOTAL => $item->getBaseRowTotal(),
+                    TotalsItemInterface::KEY_ROW_TOTAL_WITH_DISCOUNT => $item->getRowTotalWithDiscount(),
+                    TotalsItemInterface::KEY_TAX_AMOUNT => $item->getTaxAmount(),
+                    TotalsItemInterface::KEY_BASE_TAX_AMOUNT => $item->getBaseTaxAmount(),
+                    TotalsItemInterface::KEY_TAX_PERCENT => $item->getTaxPercent(),
+                    TotalsItemInterface::KEY_DISCOUNT_AMOUNT => $item->getDiscountAmount(),
+                    TotalsItemInterface::KEY_BASE_DISCOUNT_AMOUNT => $item->getBaseDiscountAmount(),
+                    TotalsItemInterface::KEY_DISCOUNT_PERCENT => $item->getDiscountPercent(),
+                    TotalsItemInterface::KEY_PRICE_INCL_TAX => $item->getPriceInclTax(),
+                    TotalsItemInterface::KEY_BASE_PRICE_INCL_TAX => $item->getBasePriceInclTax(),
+                    TotalsItemInterface::KEY_ROW_TOTAL_INCL_TAX => $item->getRowTotalInclTax(),
+                    TotalsItemInterface::KEY_BASE_ROW_TOTAL_INCL_TAX => $item->getBaseRowTotalInclTax(),
+                    TotalsItemInterface::KEY_OPTIONS => $item->getOptions(),
+                    TotalsItemInterface::KEY_WEEE_TAX_APPLIED_AMOUNT => $item->getWeeeTaxAppliedAmount(),
+                    TotalsItemInterface::KEY_WEEE_TAX_APPLIED => $item->getWeeeTaxApplied(),
+                    TotalsItemInterface::KEY_NAME => $item->getName(),
+                ];
+            }, $rawTotals->getItems()) ]
+        );
+
+        $paymentMethods = $rawPaymentInformation->getPaymentMethods();
+
+        /** If Zero Subtotal Checkout is available filter out all the other methods and return only Free Payment */
+        foreach ($paymentMethods as $payment) {
+            if ($payment->getCode() === self::FREE_PAYMENT) {
+                return [
+                    'payment_methods' => [
+                        [
+                            'code' => $payment->getCode(),
+                            'title' => $payment->getTitle()
+                        ]
+                    ],
+                    'totals' => $totals
+                ];
+            }
+        }
 
         return [
             'payment_methods' => array_map(
@@ -182,35 +233,7 @@ class SaveAddressInformation implements ResolverInterface {
                 },
                 $rawPaymentInformation->getPaymentMethods()
             ),
-            'totals' => array_merge(
-                $rawTotals->getData(),
-                [ 'items' => array_map(function ($item) {
-                    /** @var TotalsItemInterface $item */
-                    return [
-                        TotalsItemInterface::KEY_ITEM_ID => $item->getItemId(),
-                        TotalsItemInterface::KEY_PRICE => $item->getPrice(),
-                        TotalsItemInterface::KEY_BASE_PRICE => $item->getBasePrice(),
-                        TotalsItemInterface::KEY_QTY => $item->getQty(),
-                        TotalsItemInterface::KEY_ROW_TOTAL => $item->getRowTotal(),
-                        TotalsItemInterface::KEY_BASE_ROW_TOTAL => $item->getBaseRowTotal(),
-                        TotalsItemInterface::KEY_ROW_TOTAL_WITH_DISCOUNT => $item->getRowTotalWithDiscount(),
-                        TotalsItemInterface::KEY_TAX_AMOUNT => $item->getTaxAmount(),
-                        TotalsItemInterface::KEY_BASE_TAX_AMOUNT => $item->getBaseTaxAmount(),
-                        TotalsItemInterface::KEY_TAX_PERCENT => $item->getTaxPercent(),
-                        TotalsItemInterface::KEY_DISCOUNT_AMOUNT => $item->getDiscountAmount(),
-                        TotalsItemInterface::KEY_BASE_DISCOUNT_AMOUNT => $item->getBaseDiscountAmount(),
-                        TotalsItemInterface::KEY_DISCOUNT_PERCENT => $item->getDiscountPercent(),
-                        TotalsItemInterface::KEY_PRICE_INCL_TAX => $item->getPriceInclTax(),
-                        TotalsItemInterface::KEY_BASE_PRICE_INCL_TAX => $item->getBasePriceInclTax(),
-                        TotalsItemInterface::KEY_ROW_TOTAL_INCL_TAX => $item->getRowTotalInclTax(),
-                        TotalsItemInterface::KEY_BASE_ROW_TOTAL_INCL_TAX => $item->getBaseRowTotalInclTax(),
-                        TotalsItemInterface::KEY_OPTIONS => $item->getOptions(),
-                        TotalsItemInterface::KEY_WEEE_TAX_APPLIED_AMOUNT => $item->getWeeeTaxAppliedAmount(),
-                        TotalsItemInterface::KEY_WEEE_TAX_APPLIED => $item->getWeeeTaxApplied(),
-                        TotalsItemInterface::KEY_NAME => $item->getName(),
-                    ];
-                }, $rawTotals->getItems()) ]
-            )
+            'totals' => $totals
         ];
     }
 }
