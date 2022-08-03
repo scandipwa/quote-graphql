@@ -50,5 +50,7 @@
                 type="ScandiPWA\QuoteGraphQl\Model\Resolver\CartItems"/>
     <preference for="Magento\QuoteGraphQl\Model\Resolver\ShippingAddress\SelectedShippingMethod"
                 type="ScandiPWA\QuoteGraphQl\Model\Resolver\ShippingAddress\SelectedShippingMethod"/>
+    <preference for="Magento\QuoteGraphQl\Model\Cart\GetCartForUser"
+                type="ScandiPWA\QuoteGraphQl\Model\Cart\GetCartForUser"/>
 </config>
 
