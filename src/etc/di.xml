@@ -24,15 +24,25 @@
                 <item name="radio" xsi:type="string">Magento\QuoteGraphQl\Model\CartItem\DataProvider\CustomizableOptionValue\Dropdown</item>
                 <item name="checkbox" xsi:type="string">Magento\QuoteGraphQl\Model\CartItem\DataProvider\CustomizableOptionValue\Multiple</item>
                 <item name="multiple" xsi:type="string">Magento\QuoteGraphQl\Model\CartItem\DataProvider\CustomizableOptionValue\Multiple</item>
-                <item name="file" xsi:type="string">ScandiPWA\QuoteGraphQl\Model\CartItem\DataProvider\CustomizableOptionValue\File</item>
+                <item name="file" xsi:type="string">
+                    ScandiPWA\QuoteGraphQl\Model\CartItem\DataProvider\CustomizableOptionValue\File
+                </item>
             </argument>
         </arguments>
     </type>
     <type name="Magento\Catalog\Model\Product\Option\Type\File">
         <arguments>
-            <argument name="validatorInfo" xsi:type="object">Magento\Catalog\Model\Product\Option\Type\File\ValidatorInfo\Proxy</argument>
-            <argument name="validatorFile" xsi:type="object">ScandiPWA\QuoteGraphQl\Model\Product\Option\Type\File\ValidatorFile\Proxy</argument>
+            <argument name="validatorInfo" xsi:type="object">
+                Magento\Catalog\Model\Product\Option\Type\File\ValidatorInfo\Proxy
+            </argument>
+            <argument name="validatorFile" xsi:type="object">
+                ScandiPWA\QuoteGraphQl\Model\Product\Option\Type\File\ValidatorFile\Proxy
+            </argument>
         </arguments>
+    </type>
+    <type name="Magento\Quote\Model\Quote\Config">
+        <plugin disabled="true" name="append_requested_graphql_attributes"
+                type="Magento\QuoteGraphQl\Plugin\ProductAttributesExtender"/>
     </type>
     <preference for="Magento\Quote\Model\Quote\Item\Processor"
                 type="ScandiPWA\QuoteGraphQl\Model\Quote\Item\Processor"/>
