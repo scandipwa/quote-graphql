@@ -1,22 +1,27 @@
-<?php
 
+<?php
 /**
- * @category CAG Ateles
- * @package Ateles\DogmanPWA\QuoteGraphQL\Model;
- * @author Dzemal Becirevic <dzemal.becirevic@cag.se> & Andrii Antoniuk <andrii.antoniuk@cag.se>
- * @copyright Copyright (c) 2023 CAG Ateles AB
- * @license http://opensource.org/licenses/OSL-3.0 The Open Software License 3.0 (OSL-3.0)
+ * ScandiPWA - Progressive Web App for Magento
+ *
+ * Copyright © Scandiweb, Inc. All rights reserved.
+ * See LICENSE for license details.
+ *
+ * @license OSL-3.0 (Open Software License ("OSL") v. 3.0)
+ * @package scandipwa/quote-graphql
+ * @link    https://github.com/scandipwa/quote-graphql
  */
 
-namespace Ateles\DogmanPWA\QuoteGraphQL\Model;
+declare(strict_types=1);
 
-use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\GraphQl\Exception\GraphQlAuthorizationException;
-use Magento\Framework\GraphQl\Exception\GraphQlInputException;
-use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
+namespace ScandiPWA\QuoteGraphQl\Model\Cart;
+
 use Magento\Quote\Model\Quote;
 use Magento\QuoteGraphQl\Model\Cart\GetCartForUser as SourceGetCartForUser;
 
+/**
+ * Class GetCartForUser
+ * @package ScandiPWA\QuoteGraphQl\Model\Cart
+ */
 class GetCartForUser extends SourceGetCartForUser
 {
     /**
@@ -44,18 +49,16 @@ class GetCartForUser extends SourceGetCartForUser
      * @throws GraphQlInputException
      * @throws GraphQlNoSuchEntityException
      */
+
     public function execute(string $cartHash, ?int $customerId, int $storeId): Quote
     {
         $cart = parent::execute($cartHash, $customerId, $storeId);
-
-        /* TIC-2306-0118
-         * ScandiPWA does by default try to remove stock errors from cart
-         * but since they do not manage translated error messages the code
-         * can not remove messages in for example Swedish (sv_SE).
-         *
-         * We also need to remove `qty` stock messages as well since SPWA handles
-         * stock messages from the product.
+        /* For Magento, those errors are used for notification.
+         But for PWA, those errors prevent working with cart data,
+         and out_of_stock status is processed based on product fields, not stock error
+         Therefore, the error is removed if it concerns 'Out of stock item in cart'
          */
+
         foreach (self::STOCK_ERRORS_TO_REMOVE as $type => $messages) {
             foreach ($messages as $message) {
                 $cart->removeMessageByText($type, __($message));
