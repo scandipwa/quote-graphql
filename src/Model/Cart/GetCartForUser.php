@@ -1,4 +1,3 @@
-
 <?php
 /**
  * ScandiPWA - Progressive Web App for Magento
