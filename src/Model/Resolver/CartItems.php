@@ -24,7 +24,7 @@ use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\GraphQl\Query\Uid;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Item as QuoteItem;
-use Magento\QuoteGraphQl\Model\Cart\GetCartProducts;
+use Magento\QuoteGraphQl\Model\CartItem\GetItemsData;
 use Magento\QuoteGraphQl\Model\Resolver\CartItems as SourceCartItems;
 use Magento\Store\Model\App\Emulation;
 use Magento\Store\Model\StoreManagerInterface;
@@ -37,9 +37,9 @@ use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 class CartItems extends SourceCartItems
 {
     /**
-     * @var GetCartProducts
+     * @var GetItemsData
      */
-    protected GetCartProducts $getCartProducts;
+    protected GetItemsData $getItemsData;
 
     /**
      * @var Uid
@@ -67,7 +67,7 @@ class CartItems extends SourceCartItems
     protected DataPostProcessor $productPostProcessor;
 
     /**
-     * @param GetCartProducts $getCartProducts
+     * @param GetItemsData $getItemsData
      * @param Uid $uidEncoder
      * @param Emulation $emulation
      * @param HelperImage $helperImage
@@ -75,7 +75,7 @@ class CartItems extends SourceCartItems
      * @param DataPostProcessor $productPostProcessor
      */
     public function __construct(
-        GetCartProducts $getCartProducts,
+        GetItemsData $getItemsData,
         Uid $uidEncoder,
         Emulation $emulation,
         HelperImage $helperImage,
@@ -83,11 +83,11 @@ class CartItems extends SourceCartItems
         DataPostProcessor $productPostProcessor
     ) {
         parent::__construct(
-            $getCartProducts,
-            $uidEncoder
+            $uidEncoder,
+            $getItemsData
         );
 
-        $this->getCartProducts = $getCartProducts;
+        $this->getItemsData = $getItemsData;
         $this->uidEncoder = $uidEncoder;
         $this->emulation = $emulation;
         $this->helperImage = $helperImage;
