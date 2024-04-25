@@ -22,6 +22,7 @@ use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\GraphQl\Query\Uid;
+use Magento\Quote\Api\Data\CartItemInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Item as QuoteItem;
 use Magento\QuoteGraphQl\Model\CartItem\GetItemsData;
@@ -178,7 +179,8 @@ class CartItems extends SourceCartItems
      */
     public function getCartProductsData(Quote $cart, ResolveInfo $info): array
     {
-        $products = $this->getCartProducts->execute($cart);
+        $cartItems = $cart->getItems();
+        $products = $this->getCartProducts($cartItems);
         $productsData = [];
 
         $productsPostData = $this->productPostProcessor->process(
@@ -228,5 +230,18 @@ class CartItems extends SourceCartItems
             ->keepFrame(false);
 
         return $image->getUrl();
+    }
+
+    /**
+     * @param CartItemInterface[] $cartItems
+     * @return array
+     */
+    private function getCartProducts(array $cartItems): array
+    {
+        $itemsData = [];
+        foreach ($cartItems as $cartItem) {
+            $itemsData[] = $cartItem->getProduct();
+        }
+        return $itemsData;
     }
 }
