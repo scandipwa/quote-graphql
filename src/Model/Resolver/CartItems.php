@@ -22,9 +22,10 @@ use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\GraphQl\Query\Uid;
+use Magento\Quote\Api\Data\CartItemInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Item as QuoteItem;
-use Magento\QuoteGraphQl\Model\Cart\GetCartProducts;
+use Magento\QuoteGraphQl\Model\CartItem\GetItemsData;
 use Magento\QuoteGraphQl\Model\Resolver\CartItems as SourceCartItems;
 use Magento\Store\Model\App\Emulation;
 use Magento\Store\Model\StoreManagerInterface;
@@ -37,9 +38,9 @@ use ScandiPWA\Performance\Model\Resolver\Products\DataPostProcessor;
 class CartItems extends SourceCartItems
 {
     /**
-     * @var GetCartProducts
+     * @var GetItemsData
      */
-    protected GetCartProducts $getCartProducts;
+    protected GetItemsData $getItemsData;
 
     /**
      * @var Uid
@@ -67,7 +68,7 @@ class CartItems extends SourceCartItems
     protected DataPostProcessor $productPostProcessor;
 
     /**
-     * @param GetCartProducts $getCartProducts
+     * @param GetItemsData $getItemsData
      * @param Uid $uidEncoder
      * @param Emulation $emulation
      * @param HelperImage $helperImage
@@ -75,7 +76,7 @@ class CartItems extends SourceCartItems
      * @param DataPostProcessor $productPostProcessor
      */
     public function __construct(
-        GetCartProducts $getCartProducts,
+        GetItemsData $getItemsData,
         Uid $uidEncoder,
         Emulation $emulation,
         HelperImage $helperImage,
@@ -83,11 +84,11 @@ class CartItems extends SourceCartItems
         DataPostProcessor $productPostProcessor
     ) {
         parent::__construct(
-            $getCartProducts,
-            $uidEncoder
+            $uidEncoder,
+            $getItemsData
         );
 
-        $this->getCartProducts = $getCartProducts;
+        $this->getItemsData = $getItemsData;
         $this->uidEncoder = $uidEncoder;
         $this->emulation = $emulation;
         $this->helperImage = $helperImage;
@@ -178,7 +179,8 @@ class CartItems extends SourceCartItems
      */
     public function getCartProductsData(Quote $cart, ResolveInfo $info): array
     {
-        $products = $this->getCartProducts->execute($cart);
+        $cartItems = $cart->getItems();
+        $products = $this->getCartProducts($cartItems);
         $productsData = [];
 
         $productsPostData = $this->productPostProcessor->process(
@@ -228,5 +230,18 @@ class CartItems extends SourceCartItems
             ->keepFrame(false);
 
         return $image->getUrl();
+    }
+
+    /**
+     * @param CartItemInterface[] $cartItems
+     * @return array
+     */
+    private function getCartProducts(array $cartItems): array
+    {
+        $itemsData = [];
+        foreach ($cartItems as $cartItem) {
+            $itemsData[] = $cartItem->getProduct();
+        }
+        return $itemsData;
     }
 }
