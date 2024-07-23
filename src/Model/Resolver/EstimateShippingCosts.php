@@ -14,17 +14,14 @@ declare(strict_types=1);
 
 namespace ScandiPWA\QuoteGraphQl\Model\Resolver;
 
-use Magento\Customer\Api\Data\AddressInterfaceFactory;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Query\Resolver\Value;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
-use Magento\Quote\Api\Data\EstimateAddressInterface;
 use Magento\Quote\Api\Data\EstimateAddressInterfaceFactory;
 use Magento\Quote\Api\Data\ShippingMethodInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
-use Magento\Quote\Model\QuoteIdMask;
 use Magento\Quote\Model\QuoteRepository;
 use Magento\Quote\Model\ShippingMethodManagement;
 use Magento\Quote\Model\Webapi\ParamOverriderCartId;
@@ -51,17 +48,17 @@ class EstimateShippingCosts implements ResolverInterface {
     protected $overriderCartId;
 
     /**
-     * @var AddressInterfaceFactory
+     * @var EstimateAddressInterfaceFactory
      */
     protected $addressInterfaceFactory;
 
-    /** 
-     * @var StoreManagerInterface 
+    /**
+     * @var StoreManagerInterface
      */
     protected $storeManager;
 
-    /** 
-     * @var QuoteRepository 
+    /**
+     * @var QuoteRepository
      */
     protected $quoteRepository;
 
@@ -101,8 +98,9 @@ class EstimateShippingCosts implements ResolverInterface {
     private function updateStoreId($cartId)
     {
         $quote = $this->quoteRepository->getActive($cartId);
+        // Though it should return int it actually returns string
         $storeId = $this->storeManager->getStore()->getId();
-        if ($storeId === $quote->getStoreId()) {
+        if ($storeId == $quote->getStoreId()) {
             return;
         }
 
@@ -128,7 +126,6 @@ class EstimateShippingCosts implements ResolverInterface {
         array $value = null,
         array $args = null
     ) {
-        /** @var EstimateAddressInterface $address */
         $shippingAddressObject = $this->addressInterfaceFactory->create([ 'data' => $args['address'] ]);
 
         $cartId = isset($args['guestCartId'])
@@ -155,3 +152,4 @@ class EstimateShippingCosts implements ResolverInterface {
         }, $shippingMethods);
     }
 }
+
