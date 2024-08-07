@@ -63,6 +63,6 @@ class Quote extends SourceQuote
         $productId = $product->getId();
         $product = clone $this->productRepository->getById($productId, false, $this->getStore()->getId());
 
-        parent::addProduct($product, $request, $processMode);
+        return parent::addProduct($product, $request, $processMode);
     }
 }
