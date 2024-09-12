@@ -114,6 +114,9 @@ class ProductResolver implements ResolverInterface
         }
 
         $productIds = array_map(function ($item) {
+            foreach ($item->getChildrenItems() as $item){
+                return $item->getProduct()->getId();
+            }
             return $item['product_id'];
         }, $value['products']);
 
@@ -154,7 +157,8 @@ class ProductResolver implements ResolverInterface
             }
 
             /** @var $item Item */
-            $data[$key] = $productItem;
+            $productId = $item->getChildrenItems() ? $item->getChildrenItems()[0]->getProduct()->getId() : $item->getProductId();
+            $data[$key] = $productsData[$productId];
             $data[$key]['qty'] = $item->getQtyOrdered();
             $data[$key]['row_total'] = $item->getRowTotalInclTax();
             $data[$key]['original_price'] = $item->getOriginalPrice();
