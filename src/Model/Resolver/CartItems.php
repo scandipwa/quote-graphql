@@ -179,7 +179,7 @@ class CartItems extends SourceCartItems
      */
     public function getCartProductsData(Quote $cart, ResolveInfo $info): array
     {
-        $cartItems = $cart->getItems();
+        $cartItems = $cart->getAllVisibleItems();
         $products = $this->getCartProducts($cartItems);
         $productsData = [];
 
